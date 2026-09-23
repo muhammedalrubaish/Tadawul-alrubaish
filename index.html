@@ -24,7 +24,7 @@
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;text-size-adjust:100%}
-body{font-family:'Almarai',sans-serif;background:var(--ink);color:var(--text);min-height:100vh;min-height:100dvh;overflow-x:hidden;-webkit-tap-highlight-color:transparent;text-rendering:optimizeLegibility}
+body{font-family:'Almarai',sans-serif;background:var(--ink);color:var(--text);min-height:100vh;min-height:100dvh;overflow-x:hidden;overflow-x:clip;-webkit-tap-highlight-color:transparent;text-rendering:optimizeLegibility}
 /* توهجات خلفية خافتة بألوان السوق (زمردي وذهبي) */
 body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;background:
   radial-gradient(560px 380px at 85% -60px,rgba(49,227,154,.07),transparent 70%),
@@ -180,12 +180,26 @@ body{padding-bottom:76px}
 /* الصفحات: تظهر واحدة فقط ويتنقل بينها من القوائم */
 .view{display:none;min-width:0}
 .view.on{display:grid;gap:22px;animation:vfade .22s ease}
+/* مفتاح تبديل بقسمين أعلى محفظتي — ثابت أعلى الشاشة أثناء التمرير */
+.seg{position:sticky;top:8px;z-index:30;display:grid;grid-template-columns:1fr 1fr;padding:4px;border-radius:14px;background:rgba(13,14,17,.88);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:1px solid var(--line);box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.seg button{position:relative;z-index:1;background:none;border:none;color:var(--dim);font-family:inherit;font-weight:800;font-size:14px;padding:11px 8px;border-radius:10px;cursor:pointer;transition:color .25s;display:flex;align-items:center;justify-content:center;gap:6px}
+.seg button[aria-selected="true"]{color:#140D00}
+.seg-ind{position:absolute;top:4px;bottom:4px;inset-inline-start:4px;width:calc(50% - 4px);border-radius:10px;background:var(--grad-gold);box-shadow:0 4px 14px rgba(240,192,92,.3);transition:transform .32s cubic-bezier(.2,.9,.25,1.1)}
+.seg[data-on="agent"] .seg-ind{transform:translateX(-100%)}
+.seg-n{font-size:11px;min-width:20px;padding:1px 6px;border-radius:99px;background:rgba(240,192,92,.16);color:var(--sand)}
+.seg-n:empty{display:none}
+.seg button[aria-selected="true"] .seg-n{background:rgba(20,13,0,.18);color:#140D00}
+.seg button[aria-selected="true"] .emj{filter:grayscale(1) contrast(.8) brightness(.28)}
+.pt-pane{display:grid;gap:22px;min-width:0;animation:vfade .25s ease}
+.pt-pane[hidden]{display:none}
+@media (prefers-reduced-motion:reduce){.seg-ind{transition:none}.pt-pane{animation:none}}
 @keyframes vfade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
 main{padding:18px clamp(14px,4vw,42px) 40px;display:grid;gap:22px}
 /* عناصر الشبكات تنكمش دون عرض محتواها كي لا يوسّع الجدولُ الصفحةَ على الجوال — التمرير يبقى داخل .ts */
 main section,.journal-grid>*,.assist-grid>*,.stgrid>*,.sg>*,.sim-grid>*{min-width:0}
-html{overflow-x:hidden}
+/* clip يمنع التمرير الأفقي دون أن يجعل الصفحة حاوية تمرير مستقلة (hidden كان يعطّل التثبيت sticky) */
+html{overflow-x:hidden;overflow-x:clip}
 
 /* ===== آيباد وما فوق: شريط جانبي + أقسام متجاورة (عرض أفقي) ===== */
 @media(min-width:820px){
@@ -732,6 +746,13 @@ footer{padding-bottom:max(18px,calc(env(safe-area-inset-bottom) + 14px))}
 
 <!-- صفحة: محفظتي -->
 <div class="view" id="view-port">
+  <!-- تبديل بين صفقاتي اليدوية وصفقات الوكيل -->
+  <div class="seg" id="portSeg" role="tablist" data-on="mine">
+    <button type="button" role="tab" data-pt="mine" aria-selected="true">📋 صفقاتي <span class="seg-n" id="segNMine"></span></button>
+    <button type="button" role="tab" data-pt="agent" aria-selected="false">🤖 صفقات الوكيل <span class="seg-n" id="segNAgent"></span></button>
+    <i class="seg-ind" aria-hidden="true"></i>
+  </div>
+  <div class="pt-pane" id="pt-mine" role="tabpanel">
   <section id="journal">
     <div class="sh"><h2>سجل صفقاتي</h2><span>سجّل صفقاتك يدوياً بعد تنفيذها في تطبيق الوسيط</span></div>
     <div class="journal-grid">
@@ -753,17 +774,6 @@ footer{padding-bottom:max(18px,calc(env(safe-area-inset-bottom) + 14px))}
         <div class="jstats" id="jstats"></div>
         <div id="jrows"><div class="empty" id="jempty"><b>لا توجد صفقات بعد</b>نفّذ صفقتك في تطبيق الوسيط، ثم سجّلها هنا لمتابعة أدائها لحظياً.</div></div>
       </div>
-    </div>
-    <!-- صفقات الوكيل: من حساب الوسيط Alpaca مباشرة -->
-    <div class="card" id="agentTradesCard" style="margin-top:16px">
-      <div style="padding:14px 16px;border-bottom:1px solid var(--line);background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
-        <div>
-          <b style="font-size:15px">🤖 صفقات الوكيل</b>
-          <div style="font-size:11.5px;color:var(--dim);margin-top:3px" id="agentTradesSub">من حساب الوسيط Alpaca مباشرة — ما اشتراه الذكاء الاصطناعي، وأين وقفه وهدفه، وما أُغلق بربح أو خسارة</div>
-        </div>
-        <button class="quick-log" id="agentTradesRefresh" style="width:auto;padding:6px 14px;font-size:12px">↻ تحديث</button>
-      </div>
-      <div id="agentTradesBody"><div class="empty">جارٍ جلب صفقات الوكيل…</div></div>
     </div>
     <div class="card" id="distCard" style="margin-top:16px">
       <div style="padding:14px 16px;border-bottom:1px solid var(--line);background:rgba(0,0,0,.4)">
@@ -810,6 +820,20 @@ footer{padding-bottom:max(18px,calc(env(safe-area-inset-bottom) + 14px))}
       <div class="calc-note" id="gNote"></div>
     </div>
   </section>
+  </div>
+  <div class="pt-pane" id="pt-agent" role="tabpanel" hidden>
+    <!-- صفقات الوكيل: من حساب الوسيط Alpaca مباشرة -->
+    <div class="card" id="agentTradesCard">
+      <div style="padding:14px 16px;border-bottom:1px solid var(--line);background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <div>
+          <b style="font-size:15px">🤖 صفقات الوكيل</b>
+          <div style="font-size:11.5px;color:var(--dim);margin-top:3px" id="agentTradesSub">من حساب الوسيط Alpaca مباشرة — ما اشتراه الذكاء الاصطناعي، وأين وقفه وهدفه، وما أُغلق بربح أو خسارة</div>
+        </div>
+        <button class="quick-log" id="agentTradesRefresh" style="width:auto;padding:6px 14px;font-size:12px">↻ تحديث</button>
+      </div>
+      <div id="agentTradesBody"><div class="empty">جارٍ جلب صفقات الوكيل…</div></div>
+    </div>
+  </div>
 </div>
 
 </main>
@@ -1503,6 +1527,7 @@ function openDecisionPanel(sym){
     const {sym,entry,sl,tp,qty}=e.currentTarget.dataset;
     prefillJournal(sym,entry,sl,tp,qty);
     closeOverlay();
+    setPortTab('mine');
     document.getElementById('journal').scrollIntoView({behavior:'smooth'});
   });
   document.getElementById('closeModal2').addEventListener('click',closeOverlay);
@@ -1647,6 +1672,7 @@ function renderDist(){
 }
 
 function renderJournal(){
+  if(typeof updateSegCounts==='function')updateSegCounts();
   if(typeof renderCoach==='function')renderCoach();
   if(typeof renderDist==='function')renderDist();
   // stats
@@ -2489,6 +2515,28 @@ function renderGrowth(){
 ['gCap','gDep','gRet','gGoal'].forEach(id=>document.getElementById(id).addEventListener('input',renderGrowth));
 renderGrowth();
 
+/* ========= محفظتي: تبديل «صفقاتي» / «صفقات الوكيل» ========= */
+let PT=(()=>{try{return localStorage.getItem('rasad_pt')==='agent'?'agent':'mine';}catch(e){return'mine';}})();
+function setPortTab(t,scroll){
+  PT=t==='agent'?'agent':'mine';
+  const seg=document.getElementById('portSeg');if(!seg)return;
+  seg.dataset.on=PT;
+  seg.querySelectorAll('button[data-pt]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.pt===PT)));
+  document.getElementById('pt-mine').hidden=PT!=='mine';
+  document.getElementById('pt-agent').hidden=PT!=='agent';
+  try{localStorage.setItem('rasad_pt',PT);}catch(e){}
+  if(PT==='agent'){if(typeof loadAgentTrades==='function')loadAgentTrades();}
+  else renderJournal(); // يعيد رسم مخطط التوزيع بعد أن صار ظاهراً
+  if(scroll){const v=document.getElementById('view-port');const y=v.getBoundingClientRect().top+window.scrollY-10;if(window.scrollY>y)window.scrollTo({top:y,behavior:'smooth'});}
+}
+document.getElementById('portSeg').addEventListener('click',e=>{const b=e.target.closest('button[data-pt]');if(b&&b.dataset.pt!==PT)setPortTab(b.dataset.pt,true);});
+// عدد المفتوح بجانب كل قسم
+function updateSegCounts(){
+  const m=document.getElementById('segNMine'),a=document.getElementById('segNAgent');
+  if(m){const n=trades.filter(t=>!t.closePrice).length;m.textContent=n?String(n):'';}
+  if(a){let d=null;try{d=AGT.data;}catch(e){}a.textContent=d&&Array.isArray(d.positions)&&d.positions.length?String(d.positions.length):'';}
+}
+
 /* ========= التنقل بين الصفحات (القوائم السفلية) ========= */
 function switchView(v){
   document.querySelectorAll('.view').forEach(el=>el.classList.toggle('on',el.id==='view-'+v));
@@ -2498,7 +2546,7 @@ function switchView(v){
   renderAll();
   if(v==='sim'){SIM.series?simDraw(SIM.prog):runSim();} // تشغيل تلقائي أول مرة كي لا تُفتح الصفحة فارغة
   if(v==='lab'&&LAB.bars)labDraw();
-  if(v==='port'&&typeof loadAgentTrades==='function')loadAgentTrades();
+  if(v==='port')setPortTab(PT);
 }
 document.querySelectorAll('.bnav button').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.v)));
 
@@ -2925,6 +2973,7 @@ async function loadAgentTrades(force){
 function renderAgentTrades(){
   const body=document.getElementById('agentTradesBody'),sub=document.getElementById('agentTradesSub');
   const d=AGT.data;if(!body||!d)return;
+  updateSegCounts();
   const note=(ic,title,txt)=>`<div class="empty"><b>${ic} ${title}</b>${txt}</div>`;
   if(d.needPass){body.innerHTML=note('🔒','بيانات الحساب محمية','أضف <b>AI_PASS</b> في إعدادات Vercel وأعد النشر — الرمز نفسه يحمي المساعد الذكي وهذه اللوحة.');return;}
   if(d.httpError===401){body.innerHTML=note('🔒','الرمز غير صحيح','اضغط «تحديث» وأدخل رمز AI_PASS الصحيح.');return;}
@@ -3047,7 +3096,7 @@ document.getElementById('agentTradesBody').addEventListener('click',e=>{
   agentAction(b.id==='actRun'?'run':'preview');
 });
 // تحديث تلقائي كل دقيقة ما دامت صفحة «محفظتي» ظاهرة
-setInterval(()=>{if(activeView()==='port')loadAgentTrades();},60000);
+setInterval(()=>{if(activeView()==='port'&&PT==='agent')loadAgentTrades();},60000);
 
 /* بطاقة حالة الوكيل وخطوات الربط (في الرئيسية) */
 async function renderAgentCard(){
