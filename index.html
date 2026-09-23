@@ -181,11 +181,18 @@ body{padding-bottom:76px}
 .view{display:none;min-width:0}
 .view.on{display:grid;gap:22px;animation:vfade .22s ease}
 /* مفتاح تبديل بقسمين أعلى محفظتي — ثابت أعلى الشاشة أثناء التمرير */
-.seg{position:sticky;top:8px;z-index:30;display:grid;grid-template-columns:1fr 1fr;padding:4px;border-radius:14px;background:rgba(13,14,17,.88);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:1px solid var(--line);box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.seg{position:sticky;top:8px;z-index:30;display:grid;grid-template-columns:repeat(3,1fr);padding:4px;border-radius:14px;background:rgba(13,14,17,.88);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:1px solid var(--line);box-shadow:0 8px 24px rgba(0,0,0,.35)}
 .seg button{position:relative;z-index:1;background:none;border:none;color:var(--dim);font-family:inherit;font-weight:800;font-size:14px;padding:11px 8px;border-radius:10px;cursor:pointer;transition:color .25s;display:flex;align-items:center;justify-content:center;gap:6px}
 .seg button[aria-selected="true"]{color:#140D00}
-.seg-ind{position:absolute;top:4px;bottom:4px;inset-inline-start:4px;width:calc(50% - 4px);border-radius:10px;background:var(--grad-gold);box-shadow:0 4px 14px rgba(240,192,92,.3);transition:transform .32s cubic-bezier(.2,.9,.25,1.1)}
+.seg-ind{position:absolute;top:4px;bottom:4px;inset-inline-start:4px;width:calc((100% - 8px) / 3);border-radius:10px;background:var(--grad-gold);box-shadow:0 4px 14px rgba(240,192,92,.3);transition:transform .32s cubic-bezier(.2,.9,.25,1.1)}
 .seg[data-on="agent"] .seg-ind{transform:translateX(-100%)}
+.seg[data-on="assist"] .seg-ind{transform:translateX(-200%)}
+/* الشاشات الضيقة: الأيقونة فوق الاسم، والعدد في زاوية الزر */
+@media (max-width:480px){
+  .seg button{flex-direction:column;gap:2px;font-size:12.5px;padding:8px 4px;line-height:1.3}
+  .seg button .emj{font-size:17px}
+  .seg-n{position:absolute;top:4px;inset-inline-end:6px;font-size:10px;min-width:17px;padding:0 5px}
+}
 .seg-n{font-size:11px;min-width:20px;padding:1px 6px;border-radius:99px;background:rgba(240,192,92,.16);color:var(--sand)}
 .seg-n:empty{display:none}
 .seg button[aria-selected="true"] .seg-n{background:rgba(20,13,0,.18);color:#140D00}
@@ -534,6 +541,22 @@ footer{padding-bottom:max(18px,calc(env(safe-area-inset-bottom) + 14px))}
     <div class="sh"><h2>نظرة سريعة</h2><span>ملخّص كل الأقسام في شاشة واحدة — اضغط أي بطاقة لفتح قسمها الكامل</span></div>
     <div class="glance-grid" id="glanceGrid"></div>
   </section>
+  <!-- حاسبة نمو رأس المال والدخل الشهري (منقولة من محفظتي) -->
+  <section id="growth">
+    <div class="card jform">
+      <h3>📈 حاسبة نمو رأس المال والدخل الشهري<small>خطة واقعية بالفائدة المركبة: كم يكبر رأس مالك؟ ومتى تبلغ دخلك الشهري المستهدف؟</small></h3>
+      <div class="row2">
+        <lbl>رأس المال الحالي<input type="number" id="gCap" min="0" step="1000" value="50000" inputmode="numeric"></lbl>
+        <lbl>إضافة شهرية من دخلك<input type="number" id="gDep" min="0" step="100" value="1000" inputmode="numeric"></lbl>
+      </div>
+      <div class="row2">
+        <lbl>عائد شهري متوقع ٪<input type="number" id="gRet" min="0" max="10" step="0.1" value="0.8" inputmode="decimal"></lbl>
+        <lbl>دخل شهري مستهدف<input type="number" id="gGoal" min="0" step="500" value="5000" inputmode="numeric"></lbl>
+      </div>
+      <div class="calc-res" id="gRes"></div>
+      <div class="calc-note" id="gNote"></div>
+    </div>
+  </section>
 </div>
 
 <div class="view" id="view-home">
@@ -750,6 +773,7 @@ footer{padding-bottom:max(18px,calc(env(safe-area-inset-bottom) + 14px))}
   <div class="seg" id="portSeg" role="tablist" data-on="mine">
     <button type="button" role="tab" data-pt="mine" aria-selected="true">📋 صفقاتي <span class="seg-n" id="segNMine"></span></button>
     <button type="button" role="tab" data-pt="agent" aria-selected="false">🤖 صفقات الوكيل <span class="seg-n" id="segNAgent"></span></button>
+    <button type="button" role="tab" data-pt="assist" aria-selected="false">🎓 مساعد رصد <span class="seg-n" id="segNAssist"></span></button>
     <i class="seg-ind" aria-hidden="true"></i>
   </div>
   <div class="pt-pane" id="pt-mine" role="tabpanel">
@@ -787,9 +811,11 @@ footer{padding-bottom:max(18px,calc(env(safe-area-inset-bottom) + 14px))}
     </div>
   </section>
 
-  <!-- مساعد رصد: الإعدادات + المدرب + حاسبة النمو -->
+  </div>
+  <div class="pt-pane" id="pt-assist" role="tabpanel" hidden>
+  <!-- مساعد رصد: إعدادات المحفظة والمخاطرة + مدرب التداول -->
   <section id="assist">
-    <div class="sh"><h2>مساعد رصد</h2><span>مدرب يقرأ سجلّك ويكشف أخطاءك · إعدادات مخاطرتك · وخطة واقعية لنمو رأس مالك ودخلك</span></div>
+    <div class="sh"><h2>مساعد رصد</h2><span>إعدادات محفظتك ومخاطرتك · ومدرب يقرأ سجلّك ويكشف أخطاءك</span></div>
     <div class="assist-grid">
       <div class="card jform">
         <h3>⚙️ محفظتي ومخاطرتي<small>تُستخدم في حجم المركز داخل لوحة القرار وفي نصائح المدرب</small></h3>
@@ -805,19 +831,6 @@ footer{padding-bottom:max(18px,calc(env(safe-area-inset-bottom) + 14px))}
         </div>
         <div id="coachBody"></div>
       </div>
-    </div>
-    <div class="card jform" style="margin-top:16px">
-      <h3>📈 حاسبة نمو رأس المال والدخل الشهري<small>خطة واقعية بالفائدة المركبة: كم يكبر رأس مالك؟ ومتى تبلغ دخلك الشهري المستهدف؟</small></h3>
-      <div class="row2">
-        <lbl>رأس المال الحالي<input type="number" id="gCap" min="0" step="1000" value="50000" inputmode="numeric"></lbl>
-        <lbl>إضافة شهرية من دخلك<input type="number" id="gDep" min="0" step="100" value="1000" inputmode="numeric"></lbl>
-      </div>
-      <div class="row2">
-        <lbl>عائد شهري متوقع ٪<input type="number" id="gRet" min="0" max="10" step="0.1" value="0.8" inputmode="decimal"></lbl>
-        <lbl>دخل شهري مستهدف<input type="number" id="gGoal" min="0" step="500" value="5000" inputmode="numeric"></lbl>
-      </div>
-      <div class="calc-res" id="gRes"></div>
-      <div class="calc-note" id="gNote"></div>
     </div>
   </section>
   </div>
@@ -2482,6 +2495,7 @@ function renderCoach(){
   if(!A.length)add('good','✅','<b>لا ملاحظات حرجة على سجلّك الحالي.</b> أوقافك محددة وأحجامك ضمن خطتك — هذا هو الانضباط الذي يبني النتائج. راجع حاسبة النمو بالأسفل لترى أثره تراكمياً.');
   add('tip','💡','<b>قاعدة زيادة الدخل الصادقة:</b> دخلك من السوق = رأس المال × العائد × الانضباط. أسرع رافعة تتحكم بها فعلاً هي الإضافة الشهرية المنتظمة لمحفظتك، لا مضاعفة المخاطرة.');
   body.innerHTML=A.join('');
+  if(typeof updateSegCounts==='function')updateSegCounts();
 }
 
 /* ========= حاسبة نمو رأس المال والدخل ========= */
@@ -2516,16 +2530,17 @@ function renderGrowth(){
 renderGrowth();
 
 /* ========= محفظتي: تبديل «صفقاتي» / «صفقات الوكيل» ========= */
-let PT=(()=>{try{return localStorage.getItem('rasad_pt')==='agent'?'agent':'mine';}catch(e){return'mine';}})();
+const PT_TABS=['mine','agent','assist'];
+let PT=(()=>{try{const v=localStorage.getItem('rasad_pt');return PT_TABS.includes(v)?v:'mine';}catch(e){return'mine';}})();
 function setPortTab(t,scroll){
-  PT=t==='agent'?'agent':'mine';
+  PT=PT_TABS.includes(t)?t:'mine';
   const seg=document.getElementById('portSeg');if(!seg)return;
   seg.dataset.on=PT;
   seg.querySelectorAll('button[data-pt]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.pt===PT)));
-  document.getElementById('pt-mine').hidden=PT!=='mine';
-  document.getElementById('pt-agent').hidden=PT!=='agent';
+  PT_TABS.forEach(k=>{document.getElementById('pt-'+k).hidden=PT!==k;});
   try{localStorage.setItem('rasad_pt',PT);}catch(e){}
   if(PT==='agent'){if(typeof loadAgentTrades==='function')loadAgentTrades();}
+  else if(PT==='assist'){if(typeof renderCoach==='function')renderCoach();}
   else renderJournal(); // يعيد رسم مخطط التوزيع بعد أن صار ظاهراً
   if(scroll){const v=document.getElementById('view-port');const y=v.getBoundingClientRect().top+window.scrollY-10;if(window.scrollY>y)window.scrollTo({top:y,behavior:'smooth'});}
 }
@@ -2535,6 +2550,7 @@ function updateSegCounts(){
   const m=document.getElementById('segNMine'),a=document.getElementById('segNAgent');
   if(m){const n=trades.filter(t=>!t.closePrice).length;m.textContent=n?String(n):'';}
   if(a){let d=null;try{d=AGT.data;}catch(e){}a.textContent=d&&Array.isArray(d.positions)&&d.positions.length?String(d.positions.length):'';}
+  const w=document.getElementById('segNAssist');if(w){const n=document.querySelectorAll('#coachBody .advice.warn').length;w.textContent=n?String(n):'';w.title=n?'تنبيهات حرجة من المدرب':'';}
 }
 
 /* ========= التنقل بين الصفحات (القوائم السفلية) ========= */
