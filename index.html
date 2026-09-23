@@ -519,9 +519,241 @@ footer{padding-bottom:max(18px,calc(env(safe-area-inset-bottom) + 14px))}
   .mtab{padding:7px 8px;font-size:11.5px}
   #srcStatus{max-width:26vw}
 }
+
+/* ===== بوابة الدخول: شاشة تسجيل الدخول ثم اختيار البوابة ===== */
+#gate{position:fixed;inset:0;z-index:1000;background:var(--ink);display:grid;place-items:center;padding:20px;overflow:auto;
+  padding-top:max(20px,env(safe-area-inset-top));padding-bottom:max(20px,env(safe-area-inset-bottom))}
+#gate[hidden]{display:none}
+#gate::before{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;background:
+  radial-gradient(560px 380px at 85% -60px,rgba(49,227,154,.08),transparent 70%),
+  radial-gradient(640px 420px at -80px 55%,rgba(240,192,92,.07),transparent 70%)}
+.gate-box{width:100%;max-width:440px;background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:28px 26px;box-shadow:0 24px 60px rgba(0,0,0,.5);animation:vfade .3s ease;display:grid;gap:14px}
+.gate-box[hidden]{display:none}
+.gate-logo{display:flex;align-items:center;gap:12px;margin-bottom:4px}
+.gate-logo .logo-mark{width:50px;height:50px}
+.gate-logo h1{font-size:24px;font-weight:800} .gate-logo small{display:block;color:var(--dim);font-size:12px;margin-top:2px}
+.gate-box h2{font-size:17px;font-weight:800} .gate-box h2 small{display:block;font-weight:400;color:var(--dim);font-size:12px;margin-top:4px;line-height:1.7}
+.gate-note{font-size:12px;color:var(--dim);line-height:1.8;background:rgba(0,0,0,.4);border:1px dashed var(--line);border-radius:10px;padding:9px 12px}
+.gate-note b{color:var(--sand)}
+.gate-err{font-size:12.5px;color:var(--down);background:rgba(255,107,127,.08);border:1px solid rgba(255,107,127,.3);border-radius:10px;padding:9px 12px}
+.gate-err:empty{display:none}
+.gate-chk{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--dim);cursor:pointer}
+.gate-chk input{width:17px;height:17px;accent-color:var(--sand)}
+.gate-user{font-size:12.5px;color:var(--dim);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.gate-user b{color:var(--text)}
+.gate-link{background:none;border:none;color:var(--sand);font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer;padding:0;text-decoration:underline}
+/* بطاقتا البوابتين */
+.portals{display:grid;gap:12px}
+.portal{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center;text-align:start;background:#0A0B0D;border:1px solid var(--line);border-radius:16px;padding:16px;cursor:pointer;font-family:inherit;color:var(--text);transition:.18s}
+.portal:hover,.portal:focus-visible{border-color:var(--sand);transform:translateY(-2px);outline:none}
+.portal.dash{border-color:rgba(240,192,92,.45);background:linear-gradient(145deg,rgba(240,192,92,.1),rgba(240,192,92,.02) 60%),#0A0B0D}
+.portal-ic{width:54px;height:54px;border-radius:14px;display:grid;place-items:center;background:rgba(240,192,92,.12);border:1px solid rgba(240,192,92,.3)}
+.portal-ic svg{width:30px;height:30px;fill:none;stroke:var(--sand);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.portal b{display:block;font-size:15.5px;margin-bottom:3px}
+.portal small{display:block;font-size:12px;color:var(--dim);line-height:1.75}
+.portal .ptag{display:inline-block;margin-top:6px;font-size:10.5px;font-weight:800;padding:2px 9px;border-radius:99px;background:rgba(240,192,92,.14);color:var(--sand);border:1px solid rgba(240,192,92,.35)}
+.portal .ptag.g{background:rgba(49,227,154,.14);color:var(--up);border-color:rgba(49,227,154,.35)}
+
+/* ===== لوحة التحكم الموحدة (بوابة الداش بورد — أفقي فقط) ===== */
+#dash{display:none}
+body.dash{padding:0!important;overflow-x:hidden}
+body.dash>header,body.dash>main,body.dash>.bnav,body.dash>footer,body.dash>.apibar,body.dash>.tape,body.dash>.disc{display:none!important}
+body.dash #dash{display:grid;grid-template-columns:1fr 212px;min-height:100vh;min-height:100dvh}
+body.dash #dash>.tape{grid-column:1/-1;position:sticky;top:0;z-index:40}
+/* الشريط الجانبي (يمين في RTL) */
+.dside{grid-row:2;grid-column:2;position:sticky;top:40px;height:calc(100vh - 40px);height:calc(100dvh - 40px);display:flex;flex-direction:column;gap:8px;padding:12px 10px;border-inline-start:1px solid var(--line);background:rgba(13,14,17,.92);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);overflow-y:auto;scrollbar-width:thin}
+.dside .logo{padding:4px 6px 10px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.dside .logo-mark{width:38px;height:38px}
+.dside .logo h1{font-size:19px} .dside .logo small{font-size:10.5px}
+.dnav{display:grid;gap:3px}
+.dnav a{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:10px;color:var(--dim);text-decoration:none;font-size:12.5px;font-weight:700;transition:.15s;white-space:nowrap}
+.dnav a svg{width:17px;height:17px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.dnav a:hover{color:var(--text);background:rgba(240,192,92,.07)}
+.dnav a.on{color:var(--sand);background:rgba(240,192,92,.12);box-shadow:inset 0 0 0 1px rgba(240,192,92,.4)}
+.dnav .dsep{font-size:10.5px;color:var(--dim);opacity:.7;padding:8px 10px 2px;letter-spacing:.3px}
+.dside-foot{margin-top:auto;display:grid;gap:8px;padding-top:8px;border-top:1px solid var(--line)}
+/* الصحة العامة */
+.dhealth{background:#0A0B0D;border:1px solid var(--line);border-radius:14px;padding:10px}
+.dhealth .dh-top{display:flex;align-items:center;gap:10px}
+.dgauge{width:64px;height:64px;position:relative;flex-shrink:0}
+.dgauge svg{transform:rotate(-90deg);width:64px;height:64px}
+.dgauge .gn{position:absolute;inset:0;display:grid;place-items:center;font-size:17px;font-weight:800;color:var(--sand);line-height:1}
+.dgauge .gn small{font-size:9px;color:var(--dim);font-weight:400}
+.dhealth b.lbl{font-size:12.5px;display:block} .dhealth .dh-top small{display:block;font-size:11px;color:var(--dim)}
+.dh-rows{display:grid;gap:5px;margin-top:9px}
+.dh-row{display:grid;grid-template-columns:60px 1fr 34px;gap:6px;align-items:center;font-size:10.5px;color:var(--dim)}
+.dh-row i{display:block;height:6px;border-radius:99px;background:#15161A;overflow:hidden}
+.dh-row i b{display:block;height:100%;border-radius:99px}
+.dh-row .mono{font-size:10.5px;text-align:left}
+.dlast{font-size:11px;color:var(--dim);line-height:1.7;padding:0 4px}
+/* العمود الرئيسي */
+.dmain{grid-row:2;grid-column:1;min-width:0;padding:12px 14px 30px}
+.dtop{position:sticky;top:40px;z-index:35;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 12px;margin-bottom:12px;border:1px solid var(--line);border-radius:14px;background:rgba(13,14,17,.9);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.dtabs{display:flex;gap:4px}
+.dtabs a{color:var(--dim);text-decoration:none;font-size:12.5px;font-weight:800;padding:7px 13px;border-radius:9px;transition:.15s}
+.dtabs a:hover{color:var(--text)} .dtabs a.on{background:var(--grad-gold);color:#140D00}
+.dsearch{display:flex;gap:6px;margin-inline-start:auto;min-width:220px;flex:1;max-width:340px}
+.dsearch input{flex:1;min-width:0;font-size:13px;padding:8px 11px}
+.dsearch button{padding:8px 14px;font-size:12.5px}
+.duser{position:relative}
+.duser>button{display:flex;align-items:center;gap:8px;background:#0A0B0D;border:1px solid var(--line);color:var(--text);font-family:inherit;font-weight:800;font-size:12.5px;padding:7px 12px;border-radius:10px;cursor:pointer;white-space:nowrap}
+.duser>button:hover{border-color:var(--sand)}
+.duser .av{width:24px;height:24px;border-radius:50%;background:var(--grad-gold);color:#140D00;display:grid;place-items:center;font-size:12px;font-weight:800}
+.dmenu{position:absolute;top:calc(100% + 6px);inset-inline-start:0;min-width:190px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:6px;display:none;z-index:50;box-shadow:0 14px 34px rgba(0,0,0,.5)}
+.dmenu.open{display:grid;gap:2px}
+.dmenu button{background:none;border:none;color:var(--text);font-family:inherit;font-size:12.5px;font-weight:700;text-align:start;padding:9px 11px;border-radius:8px;cursor:pointer}
+.dmenu button:hover{background:rgba(240,192,92,.1);color:var(--sand)}
+.dmenu button.dng:hover{background:rgba(255,107,127,.1);color:var(--down)}
+.dtop .apibar{margin:0;flex-basis:100%;padding:8px 12px}
+/* شبكة البطاقات */
+.dgrid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:12px;align-items:start}
+.dcard{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);min-width:0;box-shadow:0 10px 28px rgba(0,0,0,.28);scroll-margin-top:100px}
+.dcard>.dhd{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--line);background:rgba(0,0,0,.4);border-radius:var(--r) var(--r) 0 0}
+.dhd b{font-size:13.5px;font-weight:800} .dhd small{color:var(--dim);font-size:11px;margin-inline-start:4px}
+.dhd .dots{margin-inline-start:auto;display:flex;gap:4px} .dhd .dots i{width:8px;height:8px;border-radius:50%;display:block}
+.dhd .dots i:nth-child(1){background:var(--down)} .dhd .dots i:nth-child(2){background:var(--sand)} .dhd .dots i:nth-child(3){background:var(--up)}
+.dbody{padding:12px 14px}
+.dslot{padding:14px}
+.dslot>section,.dslot>*{min-width:0}
+.dslot .sh{margin-bottom:10px}
+.dslot .seg{display:none}
+.c3{grid-column:span 3} .c4{grid-column:span 4} .c5{grid-column:span 5} .c6{grid-column:span 6} .c7{grid-column:span 7} .c8{grid-column:span 8} .c9{grid-column:span 9} .c12{grid-column:span 12}
+/* بطاقات المؤشرات (KPI) */
+.dk{border-radius:var(--r);border:1px solid var(--line);background:var(--panel);padding:0;overflow:hidden;min-width:0}
+.dk .dkh{display:flex;align-items:center;gap:6px;padding:8px 12px;font-size:11px;font-weight:800;letter-spacing:.3px;color:#140D00}
+.dk .dkh .dots{margin-inline-start:auto;display:flex;gap:4px} .dk .dkh .dots i{width:7px;height:7px;border-radius:50%;background:rgba(20,13,0,.35);display:block}
+.dk.gold .dkh{background:var(--grad-gold)} .dk.green .dkh{background:var(--grad-up)} .dk.blue .dkh{background:linear-gradient(135deg,#57A6FF,#2b6fd6);color:#fff} .dk.purple .dkh{background:linear-gradient(135deg,#A78BFA,#6d4fd6);color:#fff}
+.dk .dkb{padding:12px 13px 13px}
+.dk .l{font-size:11px;color:var(--dim)} .dk .v{font-size:24px;font-weight:800;margin-top:3px;line-height:1.1}
+.dk .s{font-size:11px;color:var(--dim);margin-top:6px;line-height:1.6}
+/* الأهداف */
+.dgoal{display:grid;gap:10px}
+.dgoal .g1{text-align:center;padding:6px 0 4px}
+.dgoal .g1 .l{font-size:11.5px;color:var(--dim)} .dgoal .g1 .v{font-size:26px;font-weight:800;margin-top:2px} .dgoal .g1 .s{font-size:11px;color:var(--dim)}
+.dgoal .g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.dgoal .g2>div{background:#0A0B0D;border:1px solid var(--line);border-radius:10px;padding:8px 10px;text-align:center}
+.dgoal .g2 .l{font-size:10.5px;color:var(--dim)} .dgoal .g2 .v{font-size:16px;font-weight:800;margin-top:2px}
+.dprog{display:flex;align-items:center;gap:8px;font-size:11.5px}
+.dprog i{flex:1;height:9px;border-radius:99px;background:#0A0B0D;border:1px solid var(--line);overflow:hidden;display:block}
+.dprog i b{display:block;height:100%;background:var(--grad-up);border-radius:99px;transition:width .5s}
+.dprog b.pct{font-family:'IBM Plex Mono',monospace;color:var(--up)}
+.dsub{font-size:11px;color:var(--dim);line-height:1.7}
+/* الرسم البياني */
+.dcv-wrap{position:relative;height:230px}
+.dcv-wrap canvas{position:absolute;inset:0;width:100%;height:100%}
+.dlegend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:11px;color:var(--dim);padding:8px 2px 0}
+.dlegend i{display:inline-block;width:10px;height:10px;border-radius:3px;vertical-align:-1px;margin-inline-end:5px}
+/* التحدي (دونات + عدّادات) */
+.dchal{display:grid;grid-template-columns:118px 1fr;gap:12px;align-items:center}
+.ddonut{position:relative;width:118px;height:118px}
+.ddonut canvas{position:absolute;inset:0;width:100%;height:100%}
+.ddonut .c{position:absolute;inset:0;display:grid;place-items:center;text-align:center;font-size:10px;color:var(--dim);pointer-events:none}
+.ddonut .c b{display:block;font-size:18px;color:var(--text);font-family:'IBM Plex Mono',monospace}
+.dcnt{display:grid;gap:6px}
+.dcnt div{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;font-weight:700;padding:7px 10px;border-radius:9px;border:1px solid var(--line)}
+.dcnt div b{font-family:'IBM Plex Mono',monospace;font-size:14px;min-width:26px;text-align:center;border-radius:6px;padding:1px 6px}
+.dcnt .w{background:rgba(49,227,154,.08)} .dcnt .w b{background:rgba(49,227,154,.18);color:var(--up)}
+.dcnt .l{background:rgba(255,107,127,.08)} .dcnt .l b{background:rgba(255,107,127,.18);color:var(--down)}
+.dcnt .o{background:rgba(240,192,92,.08)} .dcnt .o b{background:rgba(240,192,92,.18);color:var(--sand)}
+/* الجداول والقوائم */
+.dtable{max-height:360px;overflow:auto}
+.dtable table td,.dtable table th{padding:9px 11px;font-size:12px;white-space:nowrap}
+.dtable td small{display:block;font-size:10.5px;color:var(--dim);margin-top:1px}
+.dtop5{display:grid;gap:6px}
+.dtop5 div{display:grid;grid-template-columns:auto 1fr auto auto;gap:8px;align-items:center;font-size:12.5px;padding:7px 10px;border:1px solid var(--line);border-radius:9px;background:#0A0B0D}
+.dtop5 .sy{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;background:rgba(167,139,250,.16);color:var(--purple)}
+.dach{display:grid;gap:4px;max-height:300px;overflow:auto}
+.dach .ttl{font-size:11.5px;font-weight:800;padding:6px 4px 2px}
+.dach .ttl.w{color:var(--up)} .dach .ttl.l{color:var(--down)}
+.dach .r{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;font-size:12px;padding:6px 9px;border-radius:8px;background:#0A0B0D;border:1px solid var(--line)}
+.dach .r small{color:var(--dim);font-size:10.5px}
+.dstat{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.dstat>div{background:#0A0B0D;border:1px solid var(--line);border-radius:10px;padding:9px 10px;text-align:center}
+.dstat .l{font-size:10.5px;color:var(--dim);line-height:1.5} .dstat .v{font-size:15px;font-weight:800;margin-top:3px}
+.dalert{display:grid;gap:6px}
+.dalert div{display:flex;gap:8px;align-items:flex-start;font-size:12px;line-height:1.7;padding:8px 10px;border-radius:9px;border:1px solid var(--line)}
+.dalert .ok{background:rgba(49,227,154,.08);border-color:rgba(49,227,154,.3)} .dalert .wn{background:rgba(240,192,92,.08);border-color:rgba(240,192,92,.3)} .dalert .dg{background:rgba(255,107,127,.08);border-color:rgba(255,107,127,.3)} .dalert .nf{background:rgba(87,166,255,.08);border-color:rgba(87,166,255,.3)}
+.dnotes{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:0 10px;padding:4px 8px;max-height:320px;overflow:auto}
+.dnotes .advice{padding:9px 8px;font-size:12px;border-bottom:1px solid rgba(38,40,47,.6)}
+.dcard.r2{grid-row:span 2}
+.ddist{display:grid;grid-template-columns:118px 1fr;gap:10px;align-items:center}
+.ddist .ddonut{width:118px;height:118px}
+.ddist .ddonut .c b{font-size:16px}
+/* الأقسام المنقولة من الموقع الحالي: حدود ارتفاع مع تمرير داخلي كي لا تطول الصفحة بلا حد */
+.dslot.tall{max-height:640px;overflow:auto}
+.dslot .sg{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+.dslot .glance-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+body.dash #aiFab,body.dash #aiPanel{bottom:calc(20px + env(safe-area-inset-bottom,0px))}
+body.dash .disc{margin:0 0 12px}
+body.dash #dashFootSlot footer{border-top:1px solid var(--line);margin-top:18px;padding:16px 0 0}
+body.dash .toast{bottom:22px}
+/* أفقي فقط: عند الوضع الرأسي تُغطّى اللوحة برسالة تدوير */
+#rotateOverlay{display:none;position:fixed;inset:0;z-index:900;background:var(--ink);place-items:center;text-align:center;padding:30px}
+#rotateOverlay svg{width:78px;height:78px;fill:none;stroke:var(--sand);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;animation:rot 2.2s ease-in-out infinite}
+@keyframes rot{0%,20%{transform:rotate(0)}50%,70%{transform:rotate(-90deg)}100%{transform:rotate(-90deg)}}
+#rotateOverlay b{display:block;font-size:19px;margin:16px 0 6px} #rotateOverlay p{color:var(--dim);font-size:13px;line-height:1.9;max-width:320px}
+#rotateOverlay .abtn{margin-top:16px}
+@media (orientation:portrait){body.dash #rotateOverlay{display:grid}}
+/* شاشات أضيق (جوال أفقي / آيباد) */
+@media(max-width:1180px){
+  body.dash #dash{grid-template-columns:1fr 64px}
+  .dside{padding:10px 6px}
+  .dside .logo div,.dnav a span,.dnav .dsep,.dside .dlast{display:none}
+  .dnav a{justify-content:center;padding:9px 0} .dnav a svg{width:19px;height:19px}
+  .dhealth .dh-top small,.dhealth .dh-rows,.dhealth b.lbl{display:none}
+  .dhealth{padding:6px} .dgauge,.dgauge svg{width:46px;height:46px} .dgauge .gn{font-size:13px}
+  .c3{grid-column:span 6} .c4{grid-column:span 6} .c5{grid-column:span 6} .c7{grid-column:span 12} .c8{grid-column:span 12} .c9{grid-column:span 12}
+  .c6.kp{grid-column:span 12}
+  .dcard.r2{grid-row:auto}
+  .dhealth{order:5}
+}
+@media(max-width:1000px){
+  body.dash .apibar .mtxt{display:none}
+  body.dash .apibar{flex-wrap:nowrap;gap:8px}
+  body.dash .apibar>div:first-of-type{min-width:0!important;flex:0 1 auto!important}
+  body.dash #srcStatus{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:34vw}
+  body.dash .mtabs{margin-inline-start:auto}
+}
+@media(max-width:760px){
+  .c3,.c4,.c5,.c6{grid-column:span 12}
+  .dmain{padding:10px 10px 24px}
+  .dtabs{display:none}
+}
 </style>
 </head>
 <body>
+
+<!-- بوابة الدخول: (1) تسجيل الدخول ثم (2) اختيار البوابة -->
+<div id="gate">
+  <div id="gateWait" style="color:var(--dim);font-size:13px">⏳ جارٍ التحقق…</div>
+  <!-- الشاشة 1: تسجيل الدخول -->
+  <form class="gate-box" id="gateLogin" hidden autocomplete="on">
+    <div class="gate-logo"><div class="logo-mark"><img src="/favicon.svg" alt="شعار رصد"></div><div><h1>رصد</h1><small>مساعد قرار التداول — توصية واضحة، القرار قرارك</small></div></div>
+    <h2>تسجيل الدخول<small id="gateLoginSub">أدخل اسمك وكلمة المرور للمتابعة</small></h2>
+    <lbl>الاسم<input type="text" id="gName" placeholder="مثال: محمد" autocomplete="username" maxlength="60" required></lbl>
+    <lbl id="gPassWrap">كلمة المرور<input type="password" id="gPass" placeholder="••••••••" autocomplete="current-password"></lbl>
+    <div class="gate-note" id="gateOpenNote" hidden>🔓 <b>الدخول مفتوح:</b> لم يُضبط رمز دخول بعد. لحماية الموقع أضف <b>APP_PASS</b> (أو AI_PASS) في إعدادات Vercel وأعد النشر.</div>
+    <label class="gate-chk"><input type="checkbox" id="gRemember" checked> تذكّرني على هذا الجهاز</label>
+    <div class="gate-err" id="gateErr"></div>
+    <button class="sbtn" type="submit" id="gateLoginBtn">دخول ←</button>
+  </form>
+  <!-- الشاشة 2: اختيار البوابة -->
+  <div class="gate-box" id="gatePortal" hidden>
+    <div class="gate-logo"><div class="logo-mark"><img src="/favicon.svg" alt="شعار رصد"></div><div><h1>رصد</h1><small>اختر البوابة التي تريد الدخول منها</small></div></div>
+    <div class="gate-user">👋 أهلاً <b id="gateUser"></b><button class="gate-link" type="button" id="gateLogout">تسجيل الخروج</button></div>
+    <div class="portals">
+      <button class="portal dash" type="button" data-portal="dash">
+        <span class="portal-ic"><svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M6 15V11M9.5 15V8M13 15v-4M16.5 15V9.5M2.5 9h19"/></svg></span>
+        <span><b>بوابة لوحة التحكم</b><small>كل الأقسام والأدوات في شاشة واحدة: المحفظة والمراكز والأهداف والرادار والمحاكي والوكيل.</small><span class="ptag">↔ عرض أفقي فقط</span></span>
+      </button>
+      <button class="portal" type="button" data-portal="app">
+        <span class="portal-ic"><svg viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3M6.5 6h11M6.5 17h11"/></svg></span>
+        <span><b>بوابة رصد الحالية</b><small>الواجهة المعتادة بصفحاتها: نظرة، الرئيسية، الأسهم، الرادار، المحاكي، المختبر، محفظتي.</small><span class="ptag g">📱 جوال وحاسوب</span></span>
+      </button>
+    </div>
+    <label class="gate-chk"><input type="checkbox" id="gRememberPortal"> تذكّر اختياري وادخل مباشرة في المرات القادمة</label>
+  </div>
+</div>
 
 <!-- شريط الأسعار -->
 <div class="tape"><div class="tape-inner" id="tape"></div></div>
@@ -532,6 +764,7 @@ footer{padding-bottom:max(18px,calc(env(safe-area-inset-bottom) + 14px))}
     <div><h1>رصد</h1><small>مساعد قرار التداول — توصية واضحة، القرار قرارك</small></div>
   </div>
   <div class="hbadge"><span class="dot" id="mktDot"></span><span id="clockEl"></span>&nbsp;·&nbsp;<span id="mktState">…</span></div>
+  <button class="hbadge" id="appSwitchPortal" type="button" title="العودة إلى شاشة اختيار البوابة" style="cursor:pointer;font-family:inherit;font-weight:700">🔁 <span class="mtxt">تبديل </span>البوابة</button>
 </header>
 
 <!-- شريط حالة البيانات + تبويب الأسواق -->
@@ -561,7 +794,7 @@ footer{padding-bottom:max(18px,calc(env(safe-area-inset-bottom) + 14px))}
 <!-- صفحة: الرئيسية -->
 <!-- صفحة: نظرة سريعة (الوضع المبسّط) -->
 <div class="view" id="view-glance">
-  <section>
+  <section id="glanceSec">
     <div class="sh"><h2>نظرة سريعة</h2><span>ملخّص كل الأقسام في شاشة واحدة — اضغط أي بطاقة لفتح قسمها الكامل</span></div>
     <div class="glance-grid" id="glanceGrid"></div>
   </section>
@@ -909,6 +1142,109 @@ footer{padding-bottom:max(18px,calc(env(safe-area-inset-bottom) + 14px))}
   <div class="airow"><input id="aiIn" placeholder="اسأل عن أي سهم أو خطتك…" autocomplete="off"><button id="aiSendBtn">إرسال</button></div>
 </div>
 
+<!-- ===== لوحة التحكم الموحدة (بوابة الداش بورد) ===== -->
+<div id="dash">
+  <div class="tape" id="dashTapeSlot"></div>
+  <aside class="dside">
+    <div class="logo"><div class="logo-mark"><img src="/favicon.svg" alt="شعار رصد"></div><div><h1>رصد</h1><small>لوحة التحكم</small></div></div>
+    <div class="dhealth" id="dHealth"></div>
+    <nav class="dnav" id="dnav" aria-label="أقسام لوحة التحكم">
+      <a href="#dTop" data-t="dTop"><svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5M5.5 10v9.5h4.8v-5.4h3.4v5.4h4.8V10"/></svg><span>لوحة التحكم</span></a>
+      <a href="#dPortfolio" data-t="dPortfolio"><svg viewBox="0 0 24 24"><rect x="3.5" y="7.5" width="17" height="12" rx="2.5"/><path d="M8.5 7.5v-2h7v2M3.5 12.5h17"/></svg><span>المحفظة</span></a>
+      <a href="#dPositions" data-t="dPositions"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span>المراكز المفتوحة</span></a>
+      <a href="#dClosed" data-t="dClosed"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>الصفقات المغلقة</span></a>
+      <a href="#dJournal" data-t="dJournal"><svg viewBox="0 0 24 24"><path d="M6 3.5h9l4 4v13H6z"/><path d="M9 12h6M9 16h6"/></svg><span>سجل العمليات</span></a>
+      <a href="#dLab" data-t="dLab"><svg viewBox="0 0 24 24"><path d="M4 15l5-5 4 3 6-7M15 6h4v4"/></svg><span>التحليل الفني</span></a>
+      <a href="#dPerf" data-t="dPerf"><svg viewBox="0 0 24 24"><path d="M4 19h16M7 16v-4M11 16V8M15 16v-6M19 16V5"/></svg><span>الأداء والتقارير</span></a>
+      <a href="#dAlerts" data-t="dAlerts"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.5 21a2 2 0 0 1-3 0"/></svg><span>التنبيهات</span></a>
+      <a href="#dSettings" data-t="dSettings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span>الإعدادات</span></a>
+      <div class="dsep">أقسام رصد</div>
+      <a href="#dRec" data-t="dRec"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.5"/></svg><span>توصية الجلسة والفرص</span></a>
+      <a href="#dRadar" data-t="dRadar"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><path d="M12 3.5V1.8M12 22.2v-1.7M3.5 12H1.8M22.2 12h-1.7"/></svg><span>رادار الفرص</span></a>
+      <a href="#dNews" data-t="dNews"><svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M7 9h6M7 13h10M7 16h10"/></svg><span>الأخبار</span></a>
+      <a href="#dStocks" data-t="dStocks"><svg viewBox="0 0 24 24"><path d="M4 20h16M6 16.5v-5M10 16.5V7.5M14 16.5v-7M18 16.5V4.5"/></svg><span>الأسهم الفعّالة</span></a>
+      <a href="#dStrats" data-t="dStrats"><svg viewBox="0 0 24 24"><path d="M12 3l2.5 5 5.5.8-4 3.9.9 5.5L12 15.6 7.1 18.2 8 12.7 4 8.8 9.5 8z"/></svg><span>الاستراتيجيات</span></a>
+      <a href="#dSim" data-t="dSim"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.5 2"/></svg><span>المحاكي التاريخي</span></a>
+      <a href="#dAgent" data-t="dAgent"><svg viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M12 3v4M8.5 13h.01M15.5 13h.01M9 16h6"/></svg><span>وكيل رصد</span></a>
+      <a href="#dAgentTrades" data-t="dAgentTrades"><svg viewBox="0 0 24 24"><path d="M4 17l5-6 4 3 7-8"/><path d="M15 6h5v5"/></svg><span>صفقات الوكيل</span></a>
+      <a href="#dGrowth" data-t="dGrowth"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M7 15l4-5 3 3 6-7"/></svg><span>حاسبة النمو</span></a>
+      <a href="#dGlance" data-t="dGlance"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.6"/></svg><span>نظرة سريعة</span></a>
+    </nav>
+    <div class="dlast">🕒 آخر تحديث<br><span class="mono" id="dLast">—</span></div>
+  </aside>
+  <div class="dmain">
+    <div class="dtop" id="dTop">
+      <div class="dtabs">
+        <a href="#dTop" data-t="dTop" class="on">اللوحة</a>
+        <a href="#dPortfolio" data-t="dPortfolio">المحفظة</a>
+        <a href="#dRec" data-t="dRec">الفرص</a>
+        <a href="#dSim" data-t="dSim">الأدوات</a>
+      </div>
+      <form class="dsearch" id="dSearchForm"><input type="search" id="dSearch" placeholder="ابحث عن سهم بالاسم أو الرمز…" autocomplete="off" list="simSymList"><button class="abtn" type="submit">فتح</button></form>
+      <div class="duser">
+        <button type="button" id="dUserBtn" aria-haspopup="true" aria-expanded="false"><span class="av" id="dAv">م</span><span id="dUserName">—</span> ▾</button>
+        <div class="dmenu" id="dMenu">
+          <button type="button" id="dSwitchPortal">🔁 تبديل البوابة</button>
+          <button type="button" id="dRefresh">↻ تحديث البيانات الآن</button>
+          <button type="button" class="dng" id="dLogout">🚪 تسجيل الخروج</button>
+        </div>
+      </div>
+      <div id="dashApiSlot" style="flex-basis:100%"></div>
+    </div>
+    <div id="dashDiscSlot"></div>
+    <div class="dgrid">
+      <!-- الصف 1: المؤشرات + الأهداف (تمتد على صفين) -->
+      <div class="c9 kp" id="dPortfolio" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px">
+        <div class="dk gold"><div class="dkh">المحفظة<span class="dots"><i></i><i></i><i></i></span></div><div class="dkb" id="dkPort"></div></div>
+        <div class="dk green"><div class="dkh">الأرباح المحققة<span class="dots"><i></i><i></i><i></i></span></div><div class="dkb" id="dkInc"></div></div>
+        <div class="dk purple"><div class="dkh">العائد<span class="dots"><i></i><i></i><i></i></span></div><div class="dkb" id="dkYield"></div></div>
+        <div class="dk blue"><div class="dkh">الشهر الحالي<span class="dots"><i></i><i></i><i></i></span></div><div class="dkb" id="dkMonth"></div></div>
+      </div>
+      <div class="dcard c3 r2"><div class="dhd"><b>أهداف المحفظة</b><span class="dots"><i></i><i></i><i></i></span></div><div class="dbody dgoal" id="dGoals"></div></div>
+      <!-- الصف 2: الأداء + التحدي -->
+      <div class="dcard c6" id="dPerf"><div class="dhd"><b>الأداء — خطة 12 شهراً</b><small>من حاسبة النمو: رأس المال والإضافات والربح المركّب</small><span class="dots"><i></i><i></i><i></i></span></div>
+        <div class="dbody"><div class="dcv-wrap"><canvas id="dPerfCv"></canvas><div class="sim-tip" id="dPerfTip"></div></div>
+          <div class="dlegend"><span><i style="background:#c98500"></i>رأس المال</span><span><i style="background:#3987e5"></i>الإضافات الشهرية</span><span><i style="background:#199e70"></i>الربح المركّب</span><span id="dPerfGoalLg"></span></div></div></div>
+      <div class="dcard c3"><div class="dhd"><b>أداء التحدي</b><small>معدل النجاح على الصفقات المغلقة</small></div>
+        <div class="dbody"><div class="dchal"><div class="ddonut"><canvas id="dChalCv"></canvas><div class="c" id="dChalC"></div></div><div class="dcnt" id="dChalN"></div></div>
+          <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--line)"><b style="font-size:12.5px">الالتزام بوقف الخسارة</b><div id="dSl" style="margin-top:6px"></div></div></div></div>
+      <!-- الصف 3: المراكز الحالية + سجل الإنجازات -->
+      <div class="dcard c8" id="dPositions"><div class="dhd"><b>المراكز الحالية</b><small>صفقاتك المفتوحة بالسعر الحي</small><span class="dots"><i></i><i></i><i></i></span></div>
+        <div class="dtable"><table><thead><tr><th>السهم</th><th>الحالة</th><th>الكمية</th><th>متوسط التكلفة</th><th>السعر الحالي</th><th>القيمة السوقية</th><th>الربح/الخسارة</th><th>الهدف</th><th>الوقف</th><th></th></tr></thead><tbody id="dPosBody"></tbody></table></div>
+        <div class="dlegend" style="padding:8px 14px 10px"><span><i style="background:var(--up)"></i>مفتوح</span><span><i style="background:var(--sand)"></i>قرب الهدف</span><span><i style="background:var(--down)"></i>كسر الوقف</span></div></div>
+      <div class="dcard c4" id="dClosed"><div class="dhd"><b>سجل الإنجازات</b><small>الصفقات المغلقة</small><span class="dots"><i></i><i></i><i></i></span></div><div class="dbody dach" id="dAch"></div></div>
+      <!-- الصف 4: أعلى المراكز + التوزيع + الإحصائيات + التنبيهات -->
+      <div class="dcard c3"><div class="dhd"><b>أعلى المراكز</b><small>بالقيمة السوقية</small><span class="dots"><i></i><i></i><i></i></span></div><div class="dbody dtop5" id="dTop5"></div></div>
+      <div class="dcard c3"><div class="dhd"><b>توزيع المحفظة</b><small>حسب القيمة السوقية</small></div><div class="dbody ddist"><div class="ddonut"><canvas id="dDistCv"></canvas><div class="c" id="dDistC"></div></div><div class="dist-legend" id="dDistLg"></div></div></div>
+      <div class="dcard c3"><div class="dhd"><b>إحصائيات المحفظة</b><span class="dots"><i></i><i></i><i></i></span></div><div class="dbody dstat" id="dStats"></div></div>
+      <div class="dcard c3" id="dAlerts"><div class="dhd"><b>التنبيهات</b><span class="dots"><i></i><i></i><i></i></span></div><div class="dbody dalert" id="dAlertList"></div></div>
+      <!-- الصف 5: ملاحظات الذكاء الاصطناعي (مدرب التداول) -->
+      <div class="dcard c12"><div class="dhd"><b>🧠 ملاحظات الذكاء الاصطناعي</b><small>مدرب التداول يقرأ سجلّك ويكشف أخطاءك</small><span class="dots"><i></i><i></i><i></i></span></div><div class="dnotes" id="dNotes"></div></div>
+      <!-- أقسام رصد الحالية (غير الموجودة في التصميم) — تُنقل هنا من صفحاتها بنفس بياناتها -->
+      <div class="dcard c12" id="dRec"><div class="dhd"><b>🎯 توصية الجلسة والفرص المتاحة</b><span class="dots"><i></i><i></i><i></i></span></div><div class="dslot" id="slotRec"></div></div>
+      <div class="dcard c7" id="dRadar"><div class="dhd"><b>📡 رادار الفرص</b><span class="dots"><i></i><i></i><i></i></span></div><div class="dslot" id="slotRadar"></div></div>
+      <div class="dcard c5" id="dNews"><div class="dhd"><b>📰 الأخبار المرتبطة بالأسهم</b><span class="dots"><i></i><i></i><i></i></span></div><div class="dslot" id="slotNews"></div></div>
+      <div class="dcard c12" id="dStocks"><div class="dhd"><b>📊 الأسهم الفعّالة</b><span class="dots"><i></i><i></i><i></i></span></div><div class="dslot tall" id="slotStocks"></div></div>
+      <div class="dcard c12" id="dStrats"><div class="dhd"><b>⚖️ استراتيجيات التداول</b><span class="dots"><i></i><i></i><i></i></span></div><div class="dslot" id="slotStrats"></div></div>
+      <div class="dcard c12" id="dJournal"><div class="dhd"><b>📋 سجل العمليات — صفقاتي</b><span class="dots"><i></i><i></i><i></i></span></div><div class="dslot" id="slotJournal"></div></div>
+      <div class="dcard c12" id="dSim"><div class="dhd"><b>🎬 محاكي الاستثمار التاريخي + الباك-تيست</b><span class="dots"><i></i><i></i><i></i></span></div><div class="dslot" id="slotSim"></div></div>
+      <div class="dcard c12" id="dLab"><div class="dhd"><b>🔬 التحليل الفني — مختبر الفيواب الشهري</b><span class="dots"><i></i><i></i><i></i></span></div><div class="dslot" id="slotLab"></div></div>
+      <div class="dcard c6" id="dAgent"><div class="dhd"><b>🤖 وكيل رصد — الحالة والربط</b><span class="dots"><i></i><i></i><i></i></span></div><div class="dslot" id="slotAgent"></div></div>
+      <div class="dcard c6" id="dAgentTrades"><div class="dhd"><b>🤖 صفقات الوكيل (Alpaca)</b><span class="dots"><i></i><i></i><i></i></span></div><div class="dslot tall" id="slotAgentTrades"></div></div>
+      <div class="dcard c7" id="dSettings"><div class="dhd"><b>⚙️ الإعدادات — محفظتي ومخاطرتي + مدرب التداول</b><span class="dots"><i></i><i></i><i></i></span></div><div class="dslot" id="slotAssist"></div></div>
+      <div class="dcard c5" id="dGrowth"><div class="dhd"><b>📈 حاسبة نمو رأس المال</b><span class="dots"><i></i><i></i><i></i></span></div><div class="dslot" id="slotGrowth"></div></div>
+      <div class="dcard c12" id="dGlance"><div class="dhd"><b>👁 نظرة سريعة</b><small>بطاقة مختصرة لكل قسم</small><span class="dots"><i></i><i></i><i></i></span></div><div class="dslot" id="slotGlance"></div></div>
+    </div>
+    <div id="dashFootSlot"></div>
+  </div>
+</div>
+<div id="rotateOverlay"><div>
+  <svg viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg>
+  <b>أدر جهازك أفقياً</b>
+  <p>بوابة لوحة التحكم مصممة للعرض الأفقي فقط كي تظهر كل الأقسام جنباً إلى جنب.</p>
+  <button class="abtn" type="button" id="rotateSwitch">أو انتقل إلى بوابة رصد الحالية</button>
+</div></div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -950,6 +1286,7 @@ if('serviceWorker' in navigator){
 <script>
 /* ========= البيانات الأساسية ========= */
 const fmt=(n,d=2)=>n.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+let DASH=false; // true عند الدخول من بوابة لوحة التحكم الموحدة (كل الأقسام في صفحة واحدة)
 const SA_STOCKS=[
   {sym:'2222',name:'أرامكو السعودية', sector:'طاقة',     price:27.85,rsi:58,vol:1.4,sh:'p',hist:[]},
   {sym:'1120',name:'مصرف الراجحي',    sector:'بنوك',     price:98.40,rsi:64,vol:1.9,sh:'p',hist:[]},
@@ -1640,7 +1977,7 @@ document.getElementById('overlay').addEventListener('click',e=>{if(e.target===do
 
 /* ========= سجل الصفقات ========= */
 const trades=JSON.parse(localStorage.getItem('rasad_trades')||'[]');
-function saveTrades(){localStorage.setItem('rasad_trades',JSON.stringify(trades));}
+function saveTrades(){localStorage.setItem('rasad_trades',JSON.stringify(trades));if(DASH)setTimeout(renderDash,0);}
 
 /* ========= إعدادات المحفظة والمخاطرة ========= */
 const SETTINGS=Object.assign({cap:50000,risk:1},JSON.parse(localStorage.getItem('rasad_settings')||'{}'));
@@ -1772,7 +2109,7 @@ function renderJournal(){
     b.addEventListener('click',()=>{
       const t=trades[+b.dataset.i];
       const s=findStock(t.sym);
-      t.closePrice=s.price;saveTrades();renderJournal();
+      t.closePrice=s.price;t.closeDate=new Date().toISOString();saveTrades();renderJournal();
       toast(`أُغلقت صفقة ${s.name} بسعر ${fmt(s.price)} ✓`);
     });
   });
@@ -1806,7 +2143,7 @@ document.getElementById('jAdd').addEventListener('click',()=>{
   const note=document.getElementById('jNote').value.trim();
   if(!qty||qty<1){toast('أدخل عدد أسهم صحيحاً');return;}
   if(!entry||entry<=0){toast('أدخل سعر دخول صحيحاً');return;}
-  trades.push({sym,qty,entry,sl,tp,note,date:new Date().toLocaleDateString('ar-SA')});
+  trades.push({sym,qty,entry,sl,tp,note,date:new Date().toLocaleDateString('ar-SA'),ts:Date.now()});
   saveTrades();renderJournal();
   document.getElementById('jNote').value='';
   toast(`سُجّلت صفقة ${st.name} — اذهب الآن لتطبيق الوسيط لتنفيذها ✓`);
@@ -1890,6 +2227,7 @@ document.getElementById('shToggle').addEventListener('click',()=>{
 /* الرسم انتقائي: الشريط دائماً، وبقية المكوّنات للصفحة النشطة فقط — يخفض كلفة التحديث الدوري ~10× */
 function activeView(){const v=document.querySelector('.view.on');return v?v.id.replace('view-',''):'glance';}
 function renderAll(){
+  if(DASH){renderAllDash();return;}
   renderTape();
   const v=activeView();
   if(v==='glance')renderGlance();
@@ -1946,6 +2284,7 @@ function tick(){
   s.rsi=Math.max(15,Math.min(88,s.rsi+Math.round((Math.random()-.5)*5)));
   s.vol=Math.max(.3,Math.min(3.5,s.vol+(Math.random()-.5)*.15));
   // تحديث انتقائي: وميض بطاقة السهم فقط عندما تكون صفحة الأسهم ظاهرة
+  if(DASH){renderAllDash(s.sym,d>=0);checkAlerts();return;}
   const v=activeView();
   renderTape();
   if(v==='stocks')renderStocks(s.sym,d>=0);
@@ -2258,7 +2597,7 @@ document.querySelectorAll('#labRange .chip').forEach(ch=>ch.addEventListener('cl
 // «إلى» يبدأ بتاريخ اليوم دائماً · تعديل أي تاريخ أو العتبة يعيد الاختبار
 document.getElementById('labTo').value=dISO(Date.now()/1000);
 ['labFrom','labTo','labRsi'].forEach(id=>document.getElementById(id).addEventListener('change',()=>{if(LAB.bars)labLoad();}));
-window.addEventListener('resize',()=>{if(LAB.bars&&document.getElementById('view-lab').classList.contains('on'))labDraw();});
+window.addEventListener('resize',()=>{if(LAB.bars&&(DASH||document.getElementById('view-lab').classList.contains('on')))labDraw();});
 
 /* فحص العينة (~1000 سهم) على دفعات */
 async function labScanRun(){
@@ -2557,6 +2896,7 @@ renderGrowth();
 const PT_TABS=['mine','agent','assist'];
 let PT=(()=>{try{const v=localStorage.getItem('rasad_pt');return PT_TABS.includes(v)?v:'mine';}catch(e){return'mine';}})();
 function setPortTab(t,scroll){
+  if(DASH){if(t==='agent'&&typeof loadAgentTrades==='function')loadAgentTrades();return;} // الأقسام الثلاثة ظاهرة معاً في اللوحة
   PT=PT_TABS.includes(t)?t:'mine';
   const seg=document.getElementById('portSeg');if(!seg)return;
   seg.dataset.on=PT;
@@ -2579,6 +2919,7 @@ function updateSegCounts(){
 
 /* ========= التنقل بين الصفحات (القوائم السفلية) ========= */
 function switchView(v){
+  if(DASH){dashGoto(v);return;} // في لوحة التحكم كل الأقسام ظاهرة: التنقل = تمرير إلى القسم
   document.querySelectorAll('.view').forEach(el=>el.classList.toggle('on',el.id==='view-'+v));
   document.querySelectorAll('.bnav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
   localStorage.setItem('rasad_view',v);
@@ -2604,8 +2945,9 @@ function fillSimSelect(){
 function setSymField(id,sym){const s=findStock(sym);if(s)document.getElementById(id).value=`${s.name} (${s.sym})`;}
 function setSimSym(sym){setSymField('simSym',sym);}
 // يحلّل ما كتبه المستخدم: رمز صريح · أو «الاسم (الرمز)» · أو اسم جزئي · أو رمز جزئي
-function resolveSymField(id){
-  const raw=document.getElementById(id).value.trim();
+function resolveSymField(id){return resolveSymText(document.getElementById(id).value);}
+function resolveSymText(raw){
+  raw=String(raw||'').trim();
   if(!raw)return null;
   const m=raw.match(/\(([^)]+)\)\s*$/);
   if(m){const s=findStock(m[1].toUpperCase().trim());if(s)return s;}
@@ -2912,7 +3254,7 @@ document.querySelectorAll('#simPresets .chip').forEach(ch=>ch.addEventListener('
   setSimSym(ch.dataset.s);
   runSim();
 }));
-window.addEventListener('resize',()=>{if(SIM.series&&document.getElementById('view-sim').classList.contains('on'))simDraw(SIM.prog);});
+window.addEventListener('resize',()=>{if(SIM.series&&(DASH||document.getElementById('view-sim').classList.contains('on')))simDraw(SIM.prog);});
 
 /* ========= مساعد رصد الذكي (الزر الذهبي ✦) ========= */
 const AIH=[];let AI_BUSY=false;
@@ -3193,7 +3535,7 @@ document.getElementById('agentTradesBody').addEventListener('click',e=>{
   agentAction(b.id==='actRun'?'run':'preview');
 });
 // تحديث تلقائي كل دقيقة ما دامت صفحة «محفظتي» ظاهرة
-setInterval(()=>{if(activeView()==='port'&&PT==='agent')loadAgentTrades();},60000);
+setInterval(()=>{if(DASH||(activeView()==='port'&&PT==='agent'))loadAgentTrades();},60000);
 
 /* بطاقة حالة الوكيل وخطوات الربط (في الرئيسية) */
 async function renderAgentCard(){
@@ -3251,6 +3593,354 @@ window.addEventListener('resize',()=>renderStocks());
 setSrc();refreshLive();setInterval(refreshLive,60000);
 // أخبار حقيقية عند التحميل ثم تحديث كل 5 دقائق
 fetchNews('sa');fetchNews('us');setInterval(()=>{fetchNews('sa');fetchNews('us');},300000);
+
+/* =====================================================================
+   بوابة الدخول (تسجيل الدخول ← اختيار البوابة) + لوحة التحكم الموحدة
+   ===================================================================== */
+const AUTH_KEY='rasad_auth',PORTAL_KEY='rasad_portal';
+const ls={get:k=>{try{return localStorage.getItem(k);}catch(e){return null;}},set:(k,v)=>{try{localStorage.setItem(k,v);}catch(e){}},del:k=>{try{localStorage.removeItem(k);}catch(e){}}};
+const ss={get:k=>{try{return sessionStorage.getItem(k);}catch(e){return null;}},set:(k,v)=>{try{sessionStorage.setItem(k,v);}catch(e){}},del:k=>{try{sessionStorage.removeItem(k);}catch(e){}}};
+function authGet(){try{return JSON.parse(ss.get(AUTH_KEY)||ls.get(AUTH_KEY)||'null');}catch(e){return null;}}
+function authSet(a,remember){const s=JSON.stringify(a);ss.set(AUTH_KEY,s);if(remember)ls.set(AUTH_KEY,s);else ls.del(AUTH_KEY);}
+function authClear(){ls.del(AUTH_KEY);ss.del(AUTH_KEY);ls.del(PORTAL_KEY);ss.del(PORTAL_KEY);}
+const gateEl=document.getElementById('gate'),gLogin=document.getElementById('gateLogin'),gPortal=document.getElementById('gatePortal'),gWait=document.getElementById('gateWait');
+let GATE_INFO=null;
+async function gateInfo(){
+  try{const r=await fetch('/api/login',{cache:'no-store'});GATE_INFO=await r.json();if(!r.ok)throw 0;}
+  catch(e){GATE_INFO={protected:true,offline:true};}
+}
+function gateShow(which){
+  gateEl.hidden=false;gWait.hidden=true;
+  gLogin.hidden=which!=='login';gPortal.hidden=which!=='portal';
+  if(which==='login'){
+    const open=GATE_INFO&&GATE_INFO.protected===false;
+    document.getElementById('gPassWrap').hidden=open;
+    document.getElementById('gateOpenNote').hidden=!open;
+    document.getElementById('gateLoginSub').textContent=open?'اكتب اسمك للمتابعة — لا كلمة مرور مضبوطة حالياً':
+      GATE_INFO&&GATE_INFO.user?'الاسم وكلمة المرور كما ضُبطا في APP_USER وAPP_PASS':'اكتب اسمك وكلمة المرور (APP_PASS أو AI_PASS) للمتابعة';
+    document.getElementById('gateErr').textContent=GATE_INFO&&GATE_INFO.offline?'⚠ تعذّر الوصول إلى الخادم — حاول مرة أخرى بعد قليل':'';
+    setTimeout(()=>document.getElementById('gName').focus(),80);
+  }else if(which==='portal'){
+    const a=authGet();document.getElementById('gateUser').textContent=a&&a.name?a.name:'';
+  }
+}
+gLogin.addEventListener('submit',async e=>{
+  e.preventDefault();
+  const name=document.getElementById('gName').value.trim(),pass=document.getElementById('gPass').value;
+  const err=document.getElementById('gateErr'),btn=document.getElementById('gateLoginBtn');
+  if(!name){err.textContent='اكتب اسمك أولاً';return;}
+  btn.disabled=true;btn.textContent='⏳ جارٍ التحقق…';err.textContent='';
+  try{
+    const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,pass})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok){err.textContent=d.error||('تعذّر الدخول — خطأ '+r.status);return;}
+    authSet({name,t:Date.now(),open:!!d.open},document.getElementById('gRemember').checked);
+    if(d.aiPass)ls.set('rasad_ai_pass',pass.trim()); // كلمة المرور نفسها تفتح المساعد وصفقات الوكيل
+    document.getElementById('gPass').value='';
+    gateShow('portal');
+  }catch(e){err.textContent='تعذّر الاتصال بالخادم — تحقق من الشبكة ثم أعد المحاولة';}
+  finally{btn.disabled=false;btn.textContent='دخول ←';}
+});
+document.getElementById('gateLogout').addEventListener('click',()=>{authClear();gateShow('login');});
+gPortal.querySelectorAll('.portal').forEach(b=>b.addEventListener('click',()=>{
+  const p=b.dataset.portal;
+  ss.set(PORTAL_KEY,p);
+  if(document.getElementById('gRememberPortal').checked)ls.set(PORTAL_KEY,p);else ls.del(PORTAL_KEY);
+  enterPortal(p);
+}));
+function enterPortal(p){
+  gateEl.hidden=true;
+  if(p==='dash'){
+    // أفقي فقط: محاولة قفل الاتجاه حيث يسمح النظام (أندرويد بوضع التطبيق)، وإلا تعمل رسالة التدوير
+    try{if(screen.orientation&&screen.orientation.lock){screen.orientation.lock('landscape').catch(()=>{});}}catch(e){}
+    if(!DASH)enterDash();
+  }else if(DASH){location.reload();}
+}
+// تبديل البوابة أو الخروج: إعادة تحميل كي تُبنى الواجهة من جديد بلا نقل عكسي للأقسام
+function gateSwitchPortal(){ss.del(PORTAL_KEY);ls.del(PORTAL_KEY);history.replaceState(null,'',location.pathname+location.search);location.reload();}
+function gateLogout(){authClear();history.replaceState(null,'',location.pathname+location.search);location.reload();}
+async function gateInit(){
+  await gateInfo();
+  const a=authGet();
+  if(!a||(a.open&&GATE_INFO&&GATE_INFO.protected)){authClear();gateShow('login');return;}
+  const h=location.hash==='#dash'?'dash':location.hash==='#app'?'app':null;
+  const p=h||ss.get(PORTAL_KEY)||ls.get(PORTAL_KEY);
+  if(p==='dash'||p==='app'){ss.set(PORTAL_KEY,p);enterPortal(p);}
+  else gateShow('portal');
+}
+
+/* ========= لوحة التحكم الموحدة ========= */
+const DASH_MAP={glance:'dGlance',home:'dRec',stocks:'dStocks',radar:'dRadar',sim:'dSim',lab:'dLab',port:'dJournal'};
+function dashScrollTo(id){
+  const el=document.getElementById(id);if(!el)return;
+  const y=el.getBoundingClientRect().top+window.scrollY-(id==='dTop'?200:96);
+  window.scrollTo({top:Math.max(0,y),behavior:'smooth'});
+}
+function dashGoto(v){dashScrollTo(DASH_MAP[v]||'dTop');}
+function enterDash(){
+  DASH=true;document.body.classList.add('dash');
+  const mv=(id,slot)=>{const el=document.getElementById(id),s=document.getElementById(slot);if(el&&s)s.appendChild(el);};
+  // نقل الأقسام الحالية بعناصرها ومستمعاتها كما هي (البيانات والدوال مشتركة)
+  mv('tape','dashTapeSlot');
+  const api=document.querySelector('body>.apibar');if(api)document.getElementById('dashApiSlot').appendChild(api);
+  mv('discBanner','dashDiscSlot');
+  [['rec','slotRec'],['opps','slotRadar'],['news','slotNews'],['stocks','slotStocks'],['strats','slotStrats'],['journal','slotJournal'],
+   ['sim','slotSim'],['lab','slotLab'],['agentSec','slotAgent'],['agentTradesCard','slotAgentTrades'],['assist','slotAssist'],['growth','slotGrowth'],['glanceSec','slotGlance']]
+   .forEach(([a,b])=>mv(a,b));
+  const ft=document.querySelector('body>footer');if(ft)document.getElementById('dashFootSlot').appendChild(ft);
+  // المستخدم
+  const a=authGet()||{},nm=a.name||'مستخدم';
+  document.getElementById('dUserName').textContent=nm;document.getElementById('dAv').textContent=nm.trim().charAt(0)||'م';
+  window.scrollTo(0,0);
+  renderAllDash();renderNews();
+  if(typeof loadAgentTrades==='function')loadAgentTrades();
+  // المحاكي يعمل تلقائياً أول مرة عندما تظهر بطاقته
+  if('IntersectionObserver' in window){
+    const io=new IntersectionObserver(es=>{es.forEach(x=>{if(x.isIntersecting){io.disconnect();if(!SIM.series)runSim();else simDraw(SIM.prog);}});},{threshold:.15});
+    io.observe(document.getElementById('dSim'));
+    // تمييز القسم النشط في الشريط الجانبي
+    const links=[...document.querySelectorAll('#dnav a,.dtabs a')];
+    const vis=new Map();
+    const io2=new IntersectionObserver(es=>{
+      es.forEach(x=>vis.set(x.target.id,x.isIntersecting?x.intersectionRatio:0));
+      let best=null,bv=0;vis.forEach((v,k)=>{if(v>bv){bv=v;best=k;}});
+      if(best)links.forEach(l=>l.classList.toggle('on',l.dataset.t===best));
+    },{threshold:[.1,.3,.6],rootMargin:'-90px 0px -40% 0px'});
+    links.forEach(l=>{const t=document.getElementById(l.dataset.t);if(t&&!t._obs){t._obs=1;io2.observe(t);}});
+  }
+}
+// إحصاءات المحفظة من سجل الصفقات + الإعدادات + الأسعار الحية
+function dashStats(){
+  const open=trades.filter(t=>!t.closePrice),closed=trades.filter(t=>t.closePrice);
+  let mv=0,cost=0;const pos=[];
+  open.forEach(t=>{const s=findStock(t.sym);if(!s)return;const v=s.price*t.qty;mv+=v;cost+=t.entry*t.qty;pos.push({t,s,v,pl:(s.price-t.entry)*t.qty,plPct:(s.price/t.entry-1)*100});});
+  const unreal=mv-cost;
+  const cl=closed.map(t=>({t,s:findStock(t.sym),pl:(t.closePrice-t.entry)*t.qty,plPct:(t.closePrice/t.entry-1)*100}));
+  const realized=cl.reduce((a,x)=>a+x.pl,0);
+  const wins=cl.filter(x=>x.pl>0),losses=cl.filter(x=>x.pl<=0);
+  const sumW=wins.reduce((a,x)=>a+x.pl,0),sumL=losses.reduce((a,x)=>a+x.pl,0);
+  const wr=cl.length?Math.round(wins.length/cl.length*100):null;
+  const avgRet=cl.length?cl.reduce((a,x)=>a+x.plPct,0)/cl.length:null;
+  const cap=SETTINGS.cap,total=cap+realized+unreal;
+  const now=new Date(),mKey=now.getFullYear()+'-'+now.getMonth();
+  const inMonth=d=>{if(!d)return false;const x=new Date(d);return !isNaN(x)&&(x.getFullYear()+'-'+x.getMonth())===mKey;};
+  const mCl=cl.filter(x=>inMonth(x.t.closeDate));
+  const monthReal=mCl.reduce((a,x)=>a+x.pl,0);
+  const withSl=cl.filter(x=>x.t.sl);
+  const slOk=withSl.filter(x=>x.t.closePrice>=x.t.sl*0.99).length;
+  const slPct=withSl.length?Math.round(slOk/withSl.length*100):null;
+  const openNoSl=open.filter(t=>!t.sl).length;
+  const best=cl.length?cl.reduce((a,x)=>x.pl>a.pl?x:a):null,worst=cl.length?cl.reduce((a,x)=>x.pl<a.pl?x:a):null;
+  // مدخلات حاسبة النمو (الخطة)
+  const P=+document.getElementById('gCap').value||0,D=+document.getElementById('gDep').value||0,r=(+document.getElementById('gRet').value||0)/100,goal=+document.getElementById('gGoal').value||0;
+  const needCap=goal>0&&r>0?goal/r:null;
+  const monthTarget=total*r;
+  // انكشاف القطاعات (للتنويع)
+  const sec={};pos.forEach(p=>{sec[p.s.sector]=(sec[p.s.sector]||0)+p.v;});
+  const maxSec=mv?Math.max(0,...Object.values(sec))/mv*100:0;
+  const oversized=pos.filter(p=>p.t.sl&&(p.t.entry-p.t.sl)*p.t.qty>cap*SETTINGS.risk/100*1.5).length;
+  // الصحة العامة (0–100) من خمسة محاور
+  const clamp=v=>Math.max(0,Math.min(100,Math.round(v)));
+  const hPerf=cl.length?clamp(50+(wr-50)*1+avgRet*3):60;
+  const hRisk=open.length?clamp((open.length-openNoSl)/open.length*100-oversized*15):100;
+  const hDiv=pos.length?clamp(100-Math.max(0,maxSec-40)*2):70;
+  const cashShare=total>0?Math.max(0,1-mv/total):1;
+  const hLiq=clamp(20+cashShare/0.3*80);
+  const hPlan=withSl.length?clamp(slPct-openNoSl*10):clamp(100-openNoSl*15);
+  const health=clamp(hPerf*.25+hRisk*.25+hDiv*.15+hLiq*.15+hPlan*.2);
+  return{open,closed,pos,cl,mv,cost,unreal,realized,wins,losses,sumW,sumL,wr,avgRet,cap,total,monthReal,mCl,slPct,slOk,withSl,openNoSl,best,worst,P,D,r,goal,needCap,monthTarget,sec,maxSec,health,h:{perf:hPerf,risk:hRisk,div:hDiv,liq:hLiq,plan:hPlan}};
+}
+const dclr=v=>v>=0?'var(--up)':'var(--down)';
+const dsg=(v,d=0)=>(v>=0?'+':'−')+fmt(Math.abs(v),d);
+const dDate=iso=>{if(!iso)return'—';const d=new Date(iso);return isNaN(d)?'—':d.toLocaleDateString('en-GB',{day:'2-digit',month:'2-digit',year:'numeric'});};
+const dName=t=>{const s=findStock(t.sym);return s?s.name:t.sym;};
+let DS=null,DPERF=null;
+function renderAllDash(flashSym,flashUp){
+  renderTape();renderGlance();renderRec();renderStocks(flashSym,flashUp);renderOpps();renderJournal();
+  renderDash();
+}
+function renderDash(){
+  if(!DASH)return;
+  const S=DS=dashStats();
+  const unit=MARKET==='sa'?'ريال':'دولار';
+  // بطاقات المؤشرات
+  const chg=S.cap?(S.total/S.cap-1)*100:0;
+  document.getElementById('dkPort').innerHTML=`<div class="l">القيمة الكلية</div><div class="v mono">${fmt(S.total,0)}</div><div class="s">${unit} · <b style="color:${dclr(chg)}">${dsg(chg,2)}٪</b> على رأس المال المسجّل<br>مفتوح ${fmt(S.mv,0)} · غير محقق <b style="color:${dclr(S.unreal)}">${dsg(S.unreal,0)}</b></div>`;
+  document.getElementById('dkInc').innerHTML=`<div class="l">صافي الصفقات المغلقة</div><div class="v mono" style="color:${dclr(S.realized)}">${dsg(S.realized,0)}</div><div class="s">${S.cl.length} صفقة مغلقة · <b style="color:var(--up)">${S.wins.length}</b> رابحة / <b style="color:var(--down)">${S.losses.length}</b> خاسرة</div>`;
+  const tp1=curStrat().tp1*100;
+  document.getElementById('dkYield').innerHTML=`<div class="l">متوسط العائد لكل صفقة مغلقة</div><div class="v mono" style="color:${S.avgRet==null?'var(--text)':dclr(S.avgRet)}">${S.avgRet==null?'—':dsg(S.avgRet,2)+'%'}</div><div class="s">الهدف <b style="color:var(--sand)">+${fmt(tp1,1)}٪</b> (استراتيجية ${curStrat().name})${S.wr!=null?` · نجاح <b>${S.wr}٪</b>`:''}</div>`;
+  const mp=S.monthTarget>0?Math.min(100,Math.max(0,S.monthReal/S.monthTarget*100)):0;
+  document.getElementById('dkMonth').innerHTML=`<div class="l">المحقق هذا الشهر</div><div class="v mono" style="color:${dclr(S.monthReal)}">${dsg(S.monthReal,0)}</div><div class="s">الهدف الشهري <b style="color:var(--sand)">${fmt(S.monthTarget,0)}</b> (${(S.r*100).toFixed(1)}٪ من المحفظة) · ${S.mCl.length} صفقة أُغلقت هذا الشهر</div><div class="dprog" style="margin-top:8px"><i><b style="width:${mp.toFixed(0)}%"></b></i><b class="pct">${mp.toFixed(0)}٪</b></div>`;
+  // الأهداف
+  const g=document.getElementById('dGoals');
+  if(S.needCap){
+    const pc=Math.min(100,Math.max(0,S.total/S.needCap*100)),rem=Math.max(0,S.needCap-S.total);
+    g.innerHTML=`<div class="g1"><div class="l">الهدف النهائي — رأس المال اللازم لدخل ${fmt(S.goal,0)} شهرياً</div><div class="v mono">${fmt(S.needCap,0)}</div><div class="s">${unit} · بعائد ${(S.r*100).toFixed(1)}٪ شهرياً</div></div>
+      <div class="g2"><div><div class="l">الحالي</div><div class="v mono">${fmt(S.total,0)}</div></div><div><div class="l">المتبقي</div><div class="v mono" style="color:var(--sand)">${fmt(rem,0)}</div></div></div>
+      <div class="dprog"><i><b style="width:${pc.toFixed(1)}%"></b></i><b class="pct">${fmt(pc,1)}٪</b></div>
+      <div style="border-top:1px solid var(--line);padding-top:10px"><div style="font-size:12px;font-weight:800;margin-bottom:6px">التقدم الشهري (${new Date().toLocaleDateString('ar',{month:'long',year:'numeric'})})</div>
+      <div class="g2"><div><div class="l">الهدف الشهري</div><div class="v mono">${fmt(S.monthTarget,0)}</div></div><div><div class="l">المحقق</div><div class="v mono" style="color:${dclr(S.monthReal)}">${dsg(S.monthReal,0)}</div></div></div>
+      <div class="dprog" style="margin-top:8px"><i><b style="width:${mp.toFixed(0)}%"></b></i><b class="pct">${mp.toFixed(0)}٪</b></div></div>
+      <div class="dsub">الأرقام من حاسبة النمو (رأس المال، الإضافة، العائد المتوقع، الدخل المستهدف) — عدّلها من بطاقة الحاسبة.</div>`;
+  }else g.innerHTML=`<div class="empty" style="padding:18px">حدّد دخلاً شهرياً مستهدفاً وعائداً متوقعاً في حاسبة النمو ليظهر الهدف هنا</div>`;
+  // الأداء: خطة 12 شهراً
+  DPERF=[];for(let n=1;n<=12;n++){const fv=fvCalc(S.P,S.D,S.r,n);DPERF.push({n,base:S.P,dep:S.D*n,prof:Math.max(0,fv-S.P-S.D*n),fv});}
+  document.getElementById('dPerfGoalLg').innerHTML=S.needCap?`<i style="background:transparent;border:1px dashed var(--sand)"></i>الهدف ${fmtShort(S.needCap)}`:'';
+  dashPerfDraw();
+  // التحدي
+  const c=document.getElementById('dChalC');
+  c.innerHTML=S.cl.length?`<div><b>${S.wr}٪</b>معدل النجاح</div>`:`<div><b>—</b>لا صفقات مغلقة</div>`;
+  dashDonut(document.getElementById('dChalCv'),S.cl.length?[[S.wins.length,'#31E39A'],[S.losses.length,'#FF6B7F']]:[[1,'#26282F']]);
+  document.getElementById('dChalN').innerHTML=`<div class="w">الصفقات الرابحة<b>${S.wins.length}</b></div><div class="l">الصفقات الخاسرة<b>${S.losses.length}</b></div><div class="o">الصفقات المفتوحة<b>${S.open.length}</b></div>`;
+  const slEl=document.getElementById('dSl');
+  if(S.withSl.length){
+    const bad=S.withSl.length-S.slOk;
+    slEl.innerHTML=`<div class="dprog"><i><b style="width:${S.slPct}%;background:${S.slPct>=80?'var(--grad-up)':'linear-gradient(90deg,var(--down),var(--sand))'}"></b></i><b class="pct" style="color:${S.slPct>=80?'var(--up)':'var(--down)'}">${S.slPct}٪</b></div><div class="dsub" style="margin-top:5px">${bad?`${bad} من ${S.withSl.length} صفقة خرجت تحت وقفها المحدد`:'جميع الصفقات المغلقة خرجت وفق الخطة'}${S.openNoSl?` · <span style="color:var(--down)">${S.openNoSl} مفتوحة بلا وقف</span>`:''}</div>`;
+  }else slEl.innerHTML=`<div class="dsub">لا صفقات مغلقة بوقف محدد بعد${S.openNoSl?` · <span style="color:var(--down)">${S.openNoSl} مفتوحة بلا وقف</span>`:''}</div>`;
+  // أعلى المراكز
+  const top=[...S.pos].sort((a,b)=>b.v-a.v).slice(0,5);
+  document.getElementById('dTop5').innerHTML=top.length?top.map(p=>{const ch=chgPct(p.s);return`<div><span class="sy">${esc(p.s.sym)}</span><span style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.s.name)}</span><span class="mono">${fmtCap(p.v)}</span><span class="mono" style="color:${dclr(ch)}">${dsg(ch,1)}%</span></div>`;}).join('')
+    :`<div class="empty" style="padding:14px;display:block">لا مراكز مفتوحة بعد</div>`;
+  // المراكز الحالية
+  const pb=document.getElementById('dPosBody');
+  pb.innerHTML=S.pos.length?S.pos.map(p=>{
+    const t=p.t,s=p.s,pr=s.price;
+    const st=t.sl&&pr<=t.sl?['avoid','كسر الوقف']:t.tp&&pr>=t.tp*0.97?['watch',pr>=t.tp?'بلغ الهدف':'قرب الهدف']:['buy','مفتوح'];
+    const tpPct=t.tp?(t.tp/t.entry-1)*100:null;
+    return`<tr data-sym="${esc(t.sym)}" style="cursor:pointer"><td><b>${esc(s.name)}</b> <span class="mono" style="font-size:10.5px;color:var(--dim)">${esc(s.sym)}</span></td><td><span class="badge ${st[0]}">${st[1]}</span></td><td class="mono">${t.qty}</td><td class="mono">${fmt(t.entry)}</td><td class="mono">${fmt(pr)}</td><td class="mono">${fmt(p.v)}</td><td class="mono" style="color:${dclr(p.pl)}">${dsg(p.pl)} <small>(${dsg(p.plPct,2)}%)</small></td><td class="mono" style="color:var(--up)">${t.tp?fmt(t.tp)+(tpPct!=null?' <small>(+'+fmt(tpPct,1)+'%)</small>':''):'—'}</td><td class="mono" style="color:var(--down)">${t.sl?fmt(t.sl):'<span style="color:var(--down)">بلا وقف ⚠</span>'}</td><td><button class="quick-log" style="width:auto;padding:4px 10px;font-size:11px">قرار</button></td></tr>`;
+  }).join(''):`<tr><td colspan="10" class="empty" style="display:table-cell">لا مراكز مفتوحة — سجّل صفقتك من «سجل العمليات» أو من لوحة قرار أي سهم</td></tr>`;
+  pb.querySelectorAll('tr[data-sym]').forEach(r=>r.addEventListener('click',()=>openDecisionPanel(r.dataset.sym)));
+  // سجل الإنجازات
+  const ach=document.getElementById('dAch');
+  const row=x=>`<div class="r"><span><b>${esc(dName(x.t))}</b> <small class="mono">${esc(x.t.sym)}</small><br><small>دخول ${fmt(x.t.entry)} → خروج ${fmt(x.t.closePrice)} · ${dDate(x.t.closeDate)}</small></span><span class="mono" style="color:${dclr(x.pl)}">${dsg(x.pl)}</span><span class="mono" style="color:${dclr(x.plPct)}">${dsg(x.plPct,2)}%</span></div>`;
+  const rw=[...S.wins].reverse().slice(0,8),rl=[...S.losses].reverse().slice(0,8);
+  ach.innerHTML=S.cl.length?`<div class="ttl w">🏆 الصفقات الرابحة (${S.wins.length})</div>${rw.map(row).join('')||'<div class="dsub" style="padding:2px 6px">لا رابحة بعد</div>'}<div class="ttl l">✕ الصفقات المغلقة بخسارة (${S.losses.length})</div>${rl.map(row).join('')||'<div class="dsub" style="padding:2px 6px">لا خاسرة — ممتاز</div>'}`
+    :`<div class="empty" style="padding:18px">لا صفقات مغلقة بعد — أغلق صفقة من سجل العمليات لتظهر هنا</div>`;
+  // التوزيع حسب السهم
+  const bySym={};S.pos.forEach(p=>{bySym[p.s.sym]=(bySym[p.s.sym]||0)+p.v;});
+  const keys=Object.keys(bySym).sort();const colorOf={};keys.forEach((k,i)=>colorOf[k]=DIST_COLORS[i%DIST_COLORS.length]);
+  let ents=Object.entries(bySym).sort((a,b)=>b[1]-a[1]);
+  if(ents.length>6){const rest=ents.slice(5).reduce((a,[,v])=>a+v,0);ents=ents.slice(0,5);ents.push(['أخرى',rest]);colorOf['أخرى']=OTHER_COLOR;}
+  dashDonut(document.getElementById('dDistCv'),ents.length?ents.map(([k,v])=>[v,colorOf[k]]):[[1,'#26282F']]);
+  document.getElementById('dDistC').innerHTML=ents.length?`<div><b>${fmtShort(S.mv)}</b>${S.pos.length} مركز</div>`:'<div>لا مراكز</div>';
+  document.getElementById('dDistLg').innerHTML=ents.length?ents.map(([k,v])=>{const s=findStock(k);const pc=Math.round(v/S.mv*100);return`<div class="dl-row"><span class="dl-dot" style="background:${colorOf[k]}"></span><span class="nm">${esc(s?s.name:k)}</span><span class="pc ${pc>45?'warn-c':''}">${pc}٪</span></div>`;}).join('')
+    :'<div class="dsub">سجّل صفقات مفتوحة ليظهر توزيعها</div>';
+  // الإحصائيات
+  const bw=x=>x?`${esc(dName(x.t))}<br><span class="mono" style="color:${dclr(x.plPct)}">${dsg(x.plPct,2)}%</span>`:'—';
+  document.getElementById('dStats').innerHTML=`
+    <div><div class="l">إجمالي الأرباح المحققة</div><div class="v mono" style="color:var(--up)">${dsg(S.sumW,0)}</div></div>
+    <div><div class="l">إجمالي الخسائر المحققة</div><div class="v mono" style="color:var(--down)">${dsg(S.sumL,0)}</div></div>
+    <div><div class="l">الأرباح غير المحققة</div><div class="v mono" style="color:${dclr(S.unreal)}">${dsg(S.unreal,0)}</div></div>
+    <div><div class="l">أفضل صفقة</div><div class="v" style="font-size:12.5px">${bw(S.best)}</div></div>
+    <div><div class="l">أسوأ صفقة</div><div class="v" style="font-size:12.5px">${bw(S.worst)}</div></div>
+    <div><div class="l">إجمالي الصفقات</div><div class="v mono">${trades.length}</div></div>`;
+  // التنبيهات
+  const al=[];
+  S.pos.forEach(p=>{const t=p.t,s=p.s;
+    if(t.sl&&s.price<=t.sl)al.push(['dg','🛑',`<b>${esc(s.name)}</b>: السعر ${fmt(s.price)} كسر الوقف ${fmt(t.sl)} — التزم بخطتك وأغلق الصفقة`]);
+    else if(t.tp&&s.price>=t.tp)al.push(['ok','🎯',`<b>${esc(s.name)}</b>: بلغ الهدف ${fmt(t.tp)} — فكّر في جني الربح`]);
+    else if(t.tp&&s.price>=t.tp*0.97)al.push(['ok','✅',`<b>${esc(s.name)}</b>: قريب من الهدف (${dsg((s.price/t.tp)*100-100,1)}٪ عن ${fmt(t.tp)})`]);
+    else if(s.price<t.entry)al.push(['wn','⚠️',`<b>${esc(s.name)}</b>: تحت متوسط التكلفة (${dsg(p.plPct,2)}٪) — يحتاج متابعة`]);
+    if(!t.sl)al.push(['dg','🚨',`<b>${esc(s.name)}</b>: مفتوحة بلا وقف خسارة — حدّد وقفاً الآن`]);
+  });
+  [...visStocks()].map(s=>({s,sc:score(s)})).filter(x=>x.sc>=72).sort((a,b)=>b.sc-a.sc).slice(0,2).forEach(x=>al.push(['nf','🚀',`فرصة شراء: <b>${esc(x.s.name)}</b> بدرجة ${x.sc}/100 (${curStrat().name})`]));
+  if(!al.length)al.push(['ok','✅','لا تنبيهات حالياً — مراكزك ضمن الخطة']);
+  document.getElementById('dAlertList').innerHTML=al.slice(0,8).map(([c,i,h])=>`<div class="${c}"><span>${i}</span><span>${h}</span></div>`).join('')
+    +`<div class="nf" style="justify-content:space-between;align-items:center"><span>🔔 التنبيهات اللحظية: <b>${ALERTS_ON?'مفعّلة':'متوقفة'}</b></span><button class="quick-log" id="dAlertToggle" style="width:auto;padding:4px 10px;font-size:11px">${ALERTS_ON?'إيقاف':'تفعيل'}</button></div>`;
+  document.getElementById('dAlertToggle').addEventListener('click',async()=>{await toggleAlerts();renderDash();});
+  // ملاحظات الذكاء الاصطناعي = مدرب التداول
+  const cb=document.getElementById('coachBody');
+  document.getElementById('dNotes').innerHTML=cb?cb.innerHTML:'';
+  // الصحة العامة
+  const H=S.h,circ=2*Math.PI*26,off=circ*(1-S.health/100);
+  const lbl=S.health>=80?'ممتازة':S.health>=65?'جيدة':S.health>=50?'متوسطة':'تحتاج انتباهاً';
+  const hc=v=>v>=70?'var(--up)':v>=50?'var(--sand)':'var(--down)';
+  const hr=(l,v)=>`<div class="dh-row"><span>${l}</span><i><b style="width:${v}%;background:${hc(v)}"></b></i><span class="mono">${v}/100</span></div>`;
+  document.getElementById('dHealth').innerHTML=`<div class="dh-top"><div class="dgauge"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="none" stroke="#26282F" stroke-width="6"/><circle cx="32" cy="32" r="26" fill="none" stroke="${hc(S.health)}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${off}"/></svg><div class="gn">${S.health}<small>/100</small></div></div><div><b class="lbl">الصحة العامة للمحفظة</b><small style="color:${hc(S.health)}">${lbl}</small></div></div>
+    <div class="dh-rows">${hr('الأداء العام',H.perf)}${hr('إدارة المخاطر',H.risk)}${hr('تنويع المحفظة',H.div)}${hr('السيولة',H.liq)}${hr('الالتزام بالخطة',H.plan)}</div>`;
+  document.getElementById('dLast').textContent=new Date().toLocaleDateString('en-GB')+' — '+new Date().toLocaleTimeString('en-GB').slice(0,5);
+}
+// دونات عامة: شرائح بفجوة سطحية 2px
+function dashDonut(cv,parts){
+  const box=cv.parentElement;if(!box||!box.offsetWidth)return;
+  const W=cv.width=box.offsetWidth*2,H=cv.height=box.offsetHeight*2,c=cv.getContext('2d');
+  c.clearRect(0,0,W,H);
+  const tot=parts.reduce((a,p)=>a+p[0],0)||1,cx=W/2,cy=H/2,R=Math.min(W,H)/2-4,r=R*0.64,GAP=parts.length>1?0.05:0;
+  let a=-Math.PI/2;
+  parts.forEach(([v,col])=>{const a2=a+v/tot*Math.PI*2;if(v>0){c.beginPath();c.arc(cx,cy,R,a+GAP/2,Math.max(a+GAP/2,a2-GAP/2));c.arc(cx,cy,r,Math.max(a+GAP/2,a2-GAP/2),a+GAP/2,true);c.closePath();c.fillStyle=col;c.fill();}a=a2;});
+}
+// رسم خطة 12 شهراً: أعمدة مكدّسة (رأس المال · الإضافات · الربح المركّب) + خط الهدف
+function dashPerfDraw(hoverIdx){
+  const cv=document.getElementById('dPerfCv'),wrap=cv.parentElement;
+  if(!DPERF||!wrap.offsetWidth)return;
+  const W=cv.width=wrap.offsetWidth*2,H=cv.height=wrap.offsetHeight*2,c=cv.getContext('2d');
+  c.clearRect(0,0,W,H);c.direction='ltr';c.textAlign='left';c.font='18px "IBM Plex Mono",monospace';
+  const padT=26,padB=40,padL=14,padR=14,n=DPERF.length;
+  const goal=DS&&DS.needCap;
+  let mx=Math.max(...DPERF.map(d=>d.fv));
+  if(goal&&goal<=mx*1.6)mx=Math.max(mx,goal);
+  mx=mx*1.08||1;
+  const X=i=>padL+(i+0.5)*((W-padL-padR)/n),bw=((W-padL-padR)/n)*0.56;
+  const Y=v=>padT+(1-v/mx)*(H-padT-padB);
+  c.strokeStyle='rgba(138,163,192,.14)';c.fillStyle='rgba(138,163,192,.75)';c.lineWidth=1;
+  [0,mx/2,mx].forEach(v=>{const y=Y(v);c.beginPath();c.moveTo(padL,y);c.lineTo(W-padR,y);c.stroke();c.fillText(fmtShort(v),padL+4,y-6);});
+  const now=new Date();
+  DPERF.forEach((d,i)=>{
+    const x=X(i)-bw/2;let y=Y(0);
+    [['base','#c98500'],['dep','#3987e5'],['prof','#199e70']].forEach(([k,col])=>{
+      const h=Y(0)-Y(d[k]);if(h<=0)return;
+      c.fillStyle=col;c.fillRect(x,y-h+(y===Y(0)?0:2),bw,Math.max(0,h-(y===Y(0)?0:2)));y-=h;
+    });
+    if(hoverIdx===i){c.strokeStyle='rgba(240,192,92,.9)';c.lineWidth=3;c.strokeRect(x-3,Y(d.fv)-3,bw+6,Y(0)-Y(d.fv)+6);}
+    c.fillStyle='rgba(138,163,192,.8)';c.textAlign='center';
+    c.fillText(new Date(now.getFullYear(),now.getMonth()+i+1,1).toLocaleDateString('en-GB',{month:'short'}).toUpperCase(),X(i),H-12);c.textAlign='left';
+  });
+  if(goal&&goal<=mx){c.save();c.setLineDash([7,7]);c.strokeStyle='rgba(240,192,92,.7)';c.lineWidth=2;c.beginPath();c.moveTo(padL,Y(goal));c.lineTo(W-padR,Y(goal));c.stroke();c.restore();c.fillStyle='rgba(240,192,92,.9)';c.textAlign='right';c.fillText('الهدف '+fmtShort(goal),W-padR-4,Y(goal)-8);c.textAlign='left';}
+  const tip=document.getElementById('dPerfTip');
+  if(hoverIdx!=null&&DPERF[hoverIdx]){
+    const d=DPERF[hoverIdx];
+    tip.innerHTML=`<b>بعد ${d.n} ${d.n===1?'شهر':d.n===2?'شهرين':d.n<=10?'أشهر':'شهراً'}</b><br>المجموع <b class="mono">${fmt(d.fv,0)}</b><br>رأس المال <span class="mono">${fmt(d.base,0)}</span> · إضافات <span class="mono">${fmt(d.dep,0)}</span><br>ربح مركّب <b class="mono" style="color:var(--up)">+${fmt(d.prof,0)}</b>`;
+    tip.style.left=Math.min(wrap.offsetWidth-110,Math.max(110,X(hoverIdx)/2))+'px';tip.style.top=Math.max(50,Y(d.fv)/2)+'px';tip.style.opacity=1;
+  }else tip.style.opacity=0;
+}
+(function(){
+  const cv=document.getElementById('dPerfCv');
+  const idx=e=>{const r=cv.getBoundingClientRect();return Math.max(0,Math.min(11,Math.floor((e.clientX-r.left-7)/((r.width-14)/12))));};
+  cv.addEventListener('pointermove',e=>{if(DPERF)dashPerfDraw(idx(e));});
+  cv.addEventListener('pointerdown',e=>{if(DPERF)dashPerfDraw(idx(e));});
+  cv.addEventListener('pointerleave',()=>{if(DPERF)dashPerfDraw();});
+})();
+// تغيّر مدخلات حاسبة النمو أو الإعدادات يعيد رسم الأهداف والخطة فوراً
+['gCap','gDep','gRet','gGoal'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{if(DASH)renderDash();}));
+document.getElementById('setSave').addEventListener('click',()=>{if(DASH)setTimeout(renderDash,0);});
+window.addEventListener('resize',()=>{if(DASH)renderDash();});
+// التنقل داخل اللوحة
+document.querySelectorAll('#dnav a,.dtabs a').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();dashScrollTo(a.dataset.t);}));
+document.getElementById('dSearchForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const s=resolveSymText(document.getElementById('dSearch').value);
+  if(!s){toast('لم أجد سهماً بهذا الاسم أو الرمز');return;}
+  document.getElementById('dSearch').value='';openDecisionPanel(s.sym);
+});
+// قائمة المستخدم
+const dMenu=document.getElementById('dMenu'),dUserBtn=document.getElementById('dUserBtn');
+dUserBtn.addEventListener('click',e=>{e.stopPropagation();const on=!dMenu.classList.contains('open');dMenu.classList.toggle('open',on);dUserBtn.setAttribute('aria-expanded',String(on));});
+const dMenuClose=()=>{dMenu.classList.remove('open');dUserBtn.setAttribute('aria-expanded','false');};
+document.addEventListener('click',dMenuClose);
+document.addEventListener('keydown',e=>{if(e.key==='Escape')dMenuClose();});
+document.getElementById('dSwitchPortal').addEventListener('click',gateSwitchPortal);
+document.getElementById('appSwitchPortal').addEventListener('click',gateSwitchPortal);
+document.getElementById('dLogout').addEventListener('click',gateLogout);
+document.getElementById('dRefresh').addEventListener('click',()=>{toast('جارٍ تحديث الأسعار والأخبار وصفقات الوكيل…');refreshLive();fetchNews('sa');fetchNews('us');if(typeof loadAgentTrades==='function')loadAgentTrades(true);renderAgentCard();});
+document.getElementById('rotateSwitch').addEventListener('click',()=>{ss.set(PORTAL_KEY,'app');ls.del(PORTAL_KEY);history.replaceState(null,'',location.pathname+location.search);location.reload();});
+// تغيير الرابط إلى #dash أو #app بعد التحميل: دخول البوابة المطلوبة (بإعادة تحميل كي تُبنى الواجهة من الصفر)
+window.addEventListener('hashchange',()=>{
+  const h=location.hash==='#dash'?'dash':location.hash==='#app'?'app':null;
+  if(!h||!authGet())return;
+  if((h==='dash'&&DASH)||(h==='app'&&!DASH&&gateEl.hidden))return;
+  ss.set(PORTAL_KEY,h);location.reload();
+});
+gateInit();
 </script>
 </body>
 </html>
