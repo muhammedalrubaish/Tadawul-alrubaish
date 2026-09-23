@@ -1,5 +1,5 @@
 // نقطة نهاية المساعد الذكي داخل رصد — POST {q, history, portfolio}
-const { ask, hasKey } = require('./_ai');
+const { ask, hasKey, providerLabel, modelName } = require('./_ai');
 
 const PASS = String(process.env.AI_PASS || '').trim();
 
@@ -11,7 +11,7 @@ module.exports = async (req, res) => {
 
   // فحص الحالة للواجهة: هل المساعد مفعّل؟ وهل يتطلب رمزاً؟
   if (req.method === 'GET') {
-    return res.status(200).json({ ai: hasKey(), pass: !!PASS });
+    return res.status(200).json({ ai: hasKey(), pass: !!PASS, provider: providerLabel(), model: modelName() });
   }
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST فقط' });
 

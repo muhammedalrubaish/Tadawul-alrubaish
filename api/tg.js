@@ -2,7 +2,7 @@
 // الأوامر: «فرص» فحص فوري · رمز سهم (2222 أو AAPL) بطاقة تحليل · أي سؤال آخر → المساعد الذكي
 const { api, send, TOKEN, CHAT, SECRET } = require('./_telegram');
 const { snapshot, fmtOpps, fmtSym, esc } = require('./_market');
-const { ask, hasKey } = require('./_ai');
+const { ask, hasKey, providerLabel } = require('./_ai');
 const autotrade = require('./_autotrade');
 const broker = require('./_broker');
 
@@ -27,7 +27,7 @@ module.exports = async (req, res) => {
     const q = req.query || {};
     if (q.health) {
       const c = autotrade.cfg();
-      return res.status(200).json({ tg: !!TOKEN, chat: !!CHAT, ai: hasKey(), autotrade: { broker: broker.hasKeys(), enabled: c.enabled, mode: c.mode, paper: broker.PAPER, maxPositionUsd: c.maxPositionUsd, maxDailyTrades: c.maxDailyTrades, maxOpenPositions: c.maxOpenPositions, dailyLossLimitUsd: c.dailyLossLimitUsd } });
+      return res.status(200).json({ tg: !!TOKEN, chat: !!CHAT, ai: hasKey(), provider: providerLabel(), autotrade: { broker: broker.hasKeys(), enabled: c.enabled, mode: c.mode, paper: broker.PAPER, maxPositionUsd: c.maxPositionUsd, maxDailyTrades: c.maxDailyTrades, maxOpenPositions: c.maxOpenPositions, dailyLossLimitUsd: c.dailyLossLimitUsd } });
     }
     // تهيئة الويبهوك: /api/tg?setup=<TELEGRAM_TOKEN> — تتطلب معرفة التوكن نفسه
     if (q.setup) {
@@ -92,7 +92,7 @@ module.exports = async (req, res) => {
           : 'لا صفقات مفتوحة حالياً.';
         await send(chatId,
           `🤖 <b>حالة التداول الآلي</b> — ${broker.PAPER ? 'حساب تجريبي 🧪 (مال وهمي)' : 'حساب حقيقي 💰'}\n` +
-          `التفعيل: ${c.enabled ? 'مفعّل ✓' : 'متوقف ✗ (AUTOTRADE_ENABLED)'} · القرار: ${c.mode === 'ai' ? '🧠 Claude' : '📐 قواعد الدرجة'}\n` +
+          `التفعيل: ${c.enabled ? 'مفعّل ✓' : 'متوقف ✗ (AUTOTRADE_ENABLED)'} · القرار: ${c.mode === 'ai' ? '🧠 ' + providerLabel() : '📐 قواعد الدرجة'}\n` +
           `حقوق الملكية: ${(+acc.equity).toFixed(2)}$ · ربح/خسارة اليوم: ${dailyPL >= 0 ? '+' : ''}${dailyPL.toFixed(2)}$\n` +
           `الحدود: صفقة ≤${c.maxPositionUsd}$ · ${c.maxOpenPositions} صفقات مفتوحة كحد أقصى · ${c.maxDailyTrades} صفقات/يوم · وقف خسارة يومي ${c.dailyLossLimitUsd}$\n\n` +
           `<b>الصفقات المفتوحة:</b>\n${esc(posLines)}`);
@@ -137,7 +137,7 @@ module.exports = async (req, res) => {
 
     // سؤال حر → المساعد الذكي
     if (!hasKey()) {
-      await send(chatId, 'المساعد الذكي غير مفعّل بعد — أضف <b>ANTHROPIC_API_KEY</b> في إعدادات Vercel.\nما زال بإمكانك إرسال «فرص» أو رمز سهم.');
+      await send(chatId, 'المساعد الذكي غير مفعّل بعد — أضف <b>DEEPSEEK_API_KEY</b> (أو ANTHROPIC_API_KEY) في إعدادات Vercel.\nما زال بإمكانك إرسال «فرص» أو رمز سهم.');
       return done();
     }
     const answer = await ask({ question: text });
