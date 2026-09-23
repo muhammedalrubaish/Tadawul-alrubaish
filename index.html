@@ -140,6 +140,17 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 .act-res{margin-top:10px;padding:10px 12px;border-radius:10px;background:#0A0B0D;border:1px solid var(--line);font-size:12.5px;line-height:1.9}
 .act-res>b{display:block;margin-bottom:4px} .act-res p{margin:4px 0} .act-res small{color:var(--dim)}
 .act-res summary{cursor:pointer;color:var(--sand);font-weight:700;margin-top:6px}
+/* تقرير الفعالية */
+.perf-prog{height:8px;border-radius:99px;background:#0A0B0D;border:1px solid var(--line);overflow:hidden;margin-top:2px}
+.perf-prog i{display:block;height:100%;background:var(--grad-gold);border-radius:99px}
+.perf-meta{font-size:11.5px;color:var(--dim);margin:5px 0 10px}
+.perf-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:8px}
+.perf-kpis>div{background:#0A0B0D;border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.perf-kpis small{display:block;font-size:10.5px;color:var(--dim)} .perf-kpis b{font-size:15px;font-family:'IBM Plex Mono',monospace;direction:ltr;display:inline-block}
+.perf-verdict{margin-top:10px;padding:9px 12px;border-radius:10px;font-size:12px;line-height:1.8;border:1px solid var(--line)}
+.perf-verdict b{display:block;font-size:13px}
+.perf-verdict.p{border-color:rgba(49,227,154,.4);background:rgba(49,227,154,.07)} .perf-verdict.n{border-color:rgba(255,107,127,.4);background:rgba(255,107,127,.07)} .perf-verdict.u{background:rgba(240,192,92,.05)}
+.perf-note{display:block;font-size:10.5px;color:var(--dim);line-height:1.8;margin-top:8px}
 /* ردود سريعة تحت رد المساعد */
 .aiq{display:flex;flex-wrap:wrap;gap:6px;align-self:flex-start;max-width:92%;animation:aiPop .3s ease .12s both}
 .aiq button{background:rgba(240,192,92,.1);border:1px solid rgba(240,192,92,.35);color:var(--sand);border-radius:99px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s}
@@ -3005,6 +3016,7 @@ function renderAgentTrades(){
     <div class="jst"><div class="l">نقد متاح</div><div class="v mono">${fmt(a.cash)}$</div></div>
   </div>`;
   if(a.blocked)h+=`<div class="risk-note" style="margin:0 16px 12px"><b>🛑 الحساب موقوف لدى الوسيط</b>لن تُفتح صفقات جديدة — راجع حسابك في Alpaca.</div>`;
+  h+=agentPerfHtml(d.perf,d.enabled);
   h+=agentActivationHtml(d);
   // المراكز المفتوحة مع موقع السعر بين الوقف والهدف
   h+=`<div style="padding:12px 16px 4px;font-weight:800;font-size:13.5px">📌 مراكز مفتوحة <span style="color:var(--dim);font-weight:400">(${d.positions.length})</span></div>`;
@@ -3043,6 +3055,38 @@ function renderAgentTrades(){
   if(keepOut){const o=document.getElementById('actOut');if(o)o.innerHTML=keepOut;}
 }
 document.getElementById('agentTradesRefresh').addEventListener('click',()=>loadAgentTrades(true));
+
+/* ===== تقرير الفعالية: تجربة الشهر بمعايير محددة مسبقاً ===== */
+function agentPerfHtml(p,enabled){
+  if(!p)return'';
+  const V={
+    not_started:['⏳','لم تبدأ التجربة بعد',enabled?'تبدأ تلقائياً مع أول صفقة يشتريها الوكيل.':'فعّل التداول التجريبي (AUTOTRADE_ENABLED) لتبدأ مع أول صفقة.','u'],
+    running:['🧪','التجربة جارية — لا حكم بعد',`الحكم يصدر بعد ${p.target} يوماً و${p.checks[1].label.split(' ')[0]} صفقات مغلقة على الأقل.`,'u'],
+    convincing:['✅','مقنع مبدئياً','اجتاز الوكيل كل المعايير. شهر واحد يبقى عينة صغيرة، فمدّد التجربة قبل أي مال حقيقي.','p'],
+    not_convincing:['❌','غير مقنع','لم يجتز كل المعايير المحددة مسبقاً. لا تنقله إلى مال حقيقي.','n']
+  }[p.verdict]||['⏳','—','','u'];
+  const SHORT={not_started:'لم تبدأ',running:'جارية',convincing:'مقنع',not_convincing:'غير مقنع'}[p.verdict]||'—';
+  const prog=Math.max(0,Math.min(100,Math.round(p.days/p.target*100)));
+  const started=p.startedAt?new Date(p.startedAt).toLocaleDateString('ar',{day:'numeric',month:'long'}):'—';
+  const rows=p.checks.map(c=>`<div class="act-row"><span class="act-dot ${c.ok?'ok':'no'}">${c.ok?'✓':'✕'}</span><div><b>${esc(c.label)}</b><small>الحالي: ${esc(c.value)}</small></div></div>`).join('');
+  const pct=v=>v==null?'—':(v>=0?'+':'')+fmt(v)+'٪';
+  return`<div class="act-card perf-card">
+    <div class="act-head">📊 تجربة الشهر — هل الوكيل فعّال؟ <span class="act-state ${p.verdict==='convincing'?'on':''}">${V[0]} ${SHORT}</span></div>
+    <div class="perf-prog"><i style="width:${prog}%"></i></div>
+    <div class="perf-meta">اليوم ${p.days} من ${p.target} · بدأت ${started}</div>
+    <div class="perf-kpis">
+      <div><small>صفقات مغلقة</small><b>${p.closed}</b></div>
+      <div><small>نسبة الربح</small><b>${p.winRate==null?'—':p.winRate+'٪'}</b></div>
+      <div><small>متوسط الصفقة</small><b style="color:${(p.avgRet||0)>=0?'var(--up)':'var(--down)'}">${pct(p.avgRet)}</b></div>
+      <div><small>السوق لنفس الأيام</small><b>${pct(p.avgSpy)}</b></div>
+      <div><small>التفوق على السوق</small><b style="color:${(p.avgAlpha||0)>=0?'var(--up)':'var(--down)'}">${pct(p.avgAlpha)}</b></div>
+    </div>
+    <div class="perf-verdict ${V[3]}"><b>${V[0]} ${V[1]}</b>${V[2]}</div>
+    <div style="font-weight:800;font-size:12.5px;margin:10px 0 2px">المعايير (محددة قبل البدء كي لا تُفصَّل على النتيجة)</div>
+    ${rows}
+    <small class="perf-note">🔎 المقارنة: عائد كل صفقة مقابل شراء SPY (السوق الأمريكي كله) من افتتاح يوم الدخول حتى إغلاق يوم الخروج — تقريبية.${p.spyOk?'':' تعذّر جلب SPY الآن.'} الحساب التجريبي ينفّذ بأسعار أفضل من الواقع أحياناً، فالنتيجة الحقيقية غالباً أسوأ قليلاً.</small>
+  </div>`;
+}
 
 /* ===== تفعيل التداول بالذكاء الاصطناعي: قائمة جاهزية + معاينة + تشغيل فوري ===== */
 const VERCEL_ENV_URL='https://vercel.com/muhammedalrubaishs-projects/tadawul-alrubaish/settings/environment-variables';
