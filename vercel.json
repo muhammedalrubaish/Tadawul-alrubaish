@@ -6,6 +6,10 @@
   "functions": {
     "api/ask.js": { "maxDuration": 60 },
     "api/tg.js": { "maxDuration": 60 },
-    "api/agent.js": { "maxDuration": 60 }
+    "api/agent.js": { "maxDuration": 60 },
+    "api/quotes.js": { "maxDuration": 30 },
+    "api/scan.js": { "maxDuration": 30 },
+    "api/news.js": { "maxDuration": 30 },
+    "api/history.js": { "maxDuration": 30 }
   }
 }

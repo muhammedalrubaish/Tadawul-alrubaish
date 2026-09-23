@@ -20,6 +20,15 @@ async function api(method, path, body) {
 
 const getAccount = () => api('GET', '/v2/account');
 const getPositions = () => api('GET', '/v2/positions');
+const getClock = () => api('GET', '/v2/clock');
+
+// هل يفتح السوق الأمريكي اليوم؟ (يشمل العطلات الرسمية — الوسيط هو مصدر الحقيقة)
+async function marketOpensToday() {
+  const c = await getClock();
+  if (c.is_open) return true;
+  const et = d => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(d));
+  return et(c.timestamp) === et(c.next_open);
+}
 
 // أوامر الشراء المنفَّذة اليوم (لعدّ صفقات اليوم دون أي تخزين خاص بنا — الحساب لدى الوسيط هو مصدر الحقيقة)
 async function getTodayFilledBuyOrders() {
@@ -28,14 +37,22 @@ async function getTodayFilledBuyOrders() {
   return (orders || []).filter(o => o.side === 'buy' && o.filled_at);
 }
 
-// أمر تعليقي (bracket): دخول بسعر السوق + وقف خسارة وهدف ربح — يُنفَّذان من الوسيط تلقائياً حتى لو لم تُستدعَ الدالة مرة أخرى
-async function submitBracketOrder({ symbol, qty, tp, sl }) {
-  return api('POST', '/v2/orders', {
-    symbol, qty, side: 'buy', type: 'market', time_in_force: 'day',
+// أوامر الشراء المعلّقة (لم تُنفَّذ بعد): تُحسب ضمن الانكشاف وتُلغى إن قدُمت
+const getOpenBuyOrders = async () => (await api('GET', '/v2/orders?status=open&limit=200&nested=false') || []).filter(o => o.side === 'buy');
+const cancelOrder = id => api('DELETE', `/v2/orders/${encodeURIComponent(id)}`);
+
+// أمر تعليقي (bracket): دخول بحد سعري (أو بسعر السوق) + وقف خسارة وهدف ربح يُنفَّذهما الوسيط تلقائياً
+// gtc إلزامي: مع «day» تنتهي أرجل الوقف والهدف عند الإغلاق ويبقى المركز مكشوفاً في اليوم التالي
+async function submitBracketOrder({ symbol, qty, tp, sl, limit }) {
+  const body = {
+    symbol, qty, side: 'buy', time_in_force: 'gtc',
     order_class: 'bracket',
     take_profit: { limit_price: +(+tp).toFixed(2) },
     stop_loss: { stop_price: +(+sl).toFixed(2) }
-  });
+  };
+  if (limit > 0) { body.type = 'limit'; body.limit_price = +(+limit).toFixed(2); }
+  else body.type = 'market';
+  return api('POST', '/v2/orders', body);
 }
 
 const closePosition = symbol => api('DELETE', `/v2/positions/${encodeURIComponent(symbol)}`);
@@ -43,4 +60,7 @@ const closeAllPositions = () => api('DELETE', `/v2/positions?cancel_orders=true`
 const cancelAllOrders = () => api('DELETE', '/v2/orders');
 const hasKeys = () => !!(KEY && SECRET);
 
-module.exports = { getAccount, getPositions, getTodayFilledBuyOrders, submitBracketOrder, closePosition, closeAllPositions, cancelAllOrders, hasKeys, PAPER };
+module.exports = {
+  getAccount, getPositions, getClock, marketOpensToday, getTodayFilledBuyOrders, getOpenBuyOrders, cancelOrder,
+  submitBracketOrder, closePosition, closeAllPositions, cancelAllOrders, hasKeys, PAPER
+};

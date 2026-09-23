@@ -13,6 +13,8 @@ const HELP = `👋 أهلاً! أنا <b>وكيل رصد</b> — أراقب ال
 • <b>رمز سهم</b> — مثل <code>2222</code> أو <code>AAPL</code> — بطاقة تحليل فورية
 • <b>أي سؤال حر</b> — أجيب بالذكاء الاصطناعي مع الأسعار الحية
 • <b>حالة التداول</b> — حساب Alpaca والصفقات المفتوحة (إن كان التداول الآلي مضبوطاً)
+• <b>رأي الوكيل</b> — معاينة ما سيشتريه الذكاء الاصطناعي الآن (بلا تنفيذ)
+• <b>تداول الآن</b> — تشغيل دورة التداول الآلي فوراً (تنفيذ فعلي إن كان مفعّلاً)
 • <b>أوقف الكل</b> — إغلاق طارئ فوري لكل صفقات التداول الآلي المفتوحة
 
 وأرسل لك تلقائياً ملخص الفرص قبل افتتاح كل سوق يومياً 📬`;
@@ -23,7 +25,10 @@ module.exports = async (req, res) => {
   // ===== GET: الحالة والتهيئة =====
   if (req.method === 'GET') {
     const q = req.query || {};
-    if (q.health) return res.status(200).json({ tg: !!TOKEN, chat: !!CHAT, ai: hasKey() });
+    if (q.health) {
+      const c = autotrade.cfg();
+      return res.status(200).json({ tg: !!TOKEN, chat: !!CHAT, ai: hasKey(), autotrade: { broker: broker.hasKeys(), enabled: c.enabled, mode: c.mode, paper: broker.PAPER, maxPositionUsd: c.maxPositionUsd, maxDailyTrades: c.maxDailyTrades, maxOpenPositions: c.maxOpenPositions, dailyLossLimitUsd: c.dailyLossLimitUsd } });
+    }
     // تهيئة الويبهوك: /api/tg?setup=<TELEGRAM_TOKEN> — تتطلب معرفة التوكن نفسه
     if (q.setup) {
       if (!TOKEN) return res.status(503).json({ error: 'أضف TELEGRAM_TOKEN في إعدادات Vercel أولاً' });
@@ -87,11 +92,24 @@ module.exports = async (req, res) => {
           : 'لا صفقات مفتوحة حالياً.';
         await send(chatId,
           `🤖 <b>حالة التداول الآلي</b> — ${broker.PAPER ? 'حساب تجريبي 🧪 (مال وهمي)' : 'حساب حقيقي 💰'}\n` +
-          `التفعيل: ${c.enabled ? 'مفعّل ✓' : 'متوقف ✗ (AUTOTRADE_ENABLED)'}\n` +
+          `التفعيل: ${c.enabled ? 'مفعّل ✓' : 'متوقف ✗ (AUTOTRADE_ENABLED)'} · القرار: ${c.mode === 'ai' ? '🧠 Claude' : '📐 قواعد الدرجة'}\n` +
           `حقوق الملكية: ${(+acc.equity).toFixed(2)}$ · ربح/خسارة اليوم: ${dailyPL >= 0 ? '+' : ''}${dailyPL.toFixed(2)}$\n` +
           `الحدود: صفقة ≤${c.maxPositionUsd}$ · ${c.maxOpenPositions} صفقات مفتوحة كحد أقصى · ${c.maxDailyTrades} صفقات/يوم · وقف خسارة يومي ${c.dailyLossLimitUsd}$\n\n` +
           `<b>الصفقات المفتوحة:</b>\n${esc(posLines)}`);
       } catch (e) { await send(chatId, '⚠️ تعذّر الاتصال بالوسيط: ' + esc(e.message)); }
+      return done();
+    }
+
+    // «رأي الوكيل» — معاينة قرار الذكاء الاصطناعي بلا تنفيذ · «تداول الآن» — دورة فعلية فوراً
+    const dryM = /^\/?(رأي الوكيل|راي الوكيل|قرار الوكيل|preview)$/i.test(text);
+    if (dryM || /^\/?(تداول الآن|تداول الان|شغّل التداول|شغل التداول|trade now)$/i.test(text)) {
+      if (!broker.hasKeys()) { await send(chatId, 'التداول الآلي غير مضبوط — أضف <b>ALPACA_KEY</b> و<b>ALPACA_SECRET</b> في إعدادات Vercel.'); return done(); }
+      await send(chatId, dryM ? '🧠 أفحص السوق الأمريكي وأستشير الوكيل… (معاينة بلا تنفيذ)' : '⚙️ أشغّل دورة التداول الآلي الآن…');
+      try {
+        const list = await snapshot('us');
+        const r = await autotrade.runCycle(list, { dry: dryM });
+        await send(chatId, autotrade.fmtCycle(r));
+      } catch (e) { await send(chatId, '⚠️ تعذّرت الدورة (لم يُنفَّذ أي أمر): ' + esc(e.message)); }
       return done();
     }
 

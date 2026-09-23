@@ -1570,7 +1570,7 @@ function renderJournal(){
     <div class="jst"><div class="l">صفقات مفتوحة</div><div class="v" style="color:var(--sand)">${open.length}</div></div>
     <div class="jst"><div class="l">صفقات مغلقة</div><div class="v">${closed.length}</div><div class="wbar" style="margin-top:6px"><i style="width:${wr}%"></i></div></div>
     <div class="jst"><div class="l">نسبة النجاح</div><div class="v mono" style="color:var(--up)">${wr}%</div></div>
-    <div class="jst"><div class="l">ربح/خسارة غير محقق</div><div class="v mono ${openPL>=0?'':''}s" style="color:${openPL>=0?'var(--up)':'var(--down)'}">${openPL>=0?'+':''}${fmt(openPL)}</div></div>`;
+    <div class="jst"><div class="l">ربح/خسارة غير محقق</div><div class="v mono" style="color:${openPL>=0?'var(--up)':'var(--down)'}">${openPL>=0?'+':''}${fmt(openPL)}</div></div>`;
   // rows
   const empty=document.getElementById('jempty');
   if(!trades.length){empty.style.display='block';return;}
@@ -1579,7 +1579,11 @@ function renderJournal(){
   [...trades].reverse().forEach((t,ri)=>{
     const idx=trades.length-1-ri;
     const s=findStock(t.sym);
-    if(!s)return;
+    if(!s){
+      // رمز لم يعد في قوائم التطبيق: يبقى قابلاً للحذف بدل أن يعلق في التخزين بلا أثر
+      rows+=`<div class="jrow"><div class="jrow-left"><div class="jrow-icon open-t">❔</div><div class="jrow-info"><div class="jrow-name"><span class="mono">${esc(t.sym)}</span></div><div class="jrow-detail">رمز غير مدعوم حالياً · دخول ${fmt(+t.entry||0)} · ${t.qty} سهم</div></div></div><div class="jrow-right"><button class="btn-del" data-i="${idx}">حذف</button></div></div>`;
+      return;
+    }
     const cur=s.price;
     const isClosed=!!t.closePrice;
     const pl=(isClosed?t.closePrice:cur-0)*1-t.entry*1;
@@ -1680,6 +1684,8 @@ async function fetchLive(market){
   arr.forEach(s=>{
     const q=d.quotes&&d.quotes[s.sym];
     if(q&&q.price>0){
+      // أول سعر حقيقي يمسح المسار التوضيحي العشوائي كي لا يُرسم في الخط البياني الصغير
+      if(!s.live)s.hist=[q.price];
       s.price=q.price;s.live=true;
       if(q.open>0)s.open=q.open;
       if(q.volRatio>0)s.vol=Math.min(4,q.volRatio);
@@ -2244,9 +2250,11 @@ function notify(title,body){
 }
 function checkAlerts(){
   if(!ALERTS_ON){alertsReady=true;return;}
-  trades.forEach((t,i)=>{
+  trades.forEach(t=>{
     if(t.closePrice)return;
     const s=findStock(t.sym);if(!s)return;
+    // مفتاح ثابت لكل صفقة (لا فهرسها): حذف صفقة لا يُعيد تنبيه صفقة أخرى ولا يكتمه
+    const i=t.sym+'@'+t.entry+'@'+(t.date||'');
     if(t.tp&&s.price>=t.tp){const k='tp'+i;if(!notified.has(k)){notified.add(k);if(alertsReady)notify('🎯 بلغ الهدف: '+s.name,`السعر ${fmt(s.price)} وصل هدفك ${fmt(t.tp)}`);}}
     if(t.sl&&s.price<=t.sl){const k='sl'+i;if(!notified.has(k)){notified.add(k);if(alertsReady)notify('🛑 وقف الخسارة: '+s.name,`السعر ${fmt(s.price)} لمس وقفك ${fmt(t.sl)}`);}}
   });
@@ -2772,11 +2780,16 @@ async function renderAgentCard(){
   let a={ai:false},t={tg:false,chat:false};
   try{a=await(await fetch('/api/ask')).json();}catch(e){}
   try{t=await(await fetch('/api/tg?health=1')).json();}catch(e){}
-  const dot=ok=>`<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${ok?'var(--up)':'var(--down)'};margin-inline-end:7px"></span>`;
+  const at=t.autotrade||{};
+  const dot=(ok,warn)=>`<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${ok?'var(--up)':warn?'var(--sand)':'var(--down)'};margin-inline-end:7px"></span>`;
+  const atTxt=!at.broker?'غير مضبوط — أضف مفاتيح Alpaca (الخطوات أدناه)'
+    :!at.enabled?`جاهز لكن <b>متوقف</b> (AUTOTRADE_ENABLED ليس true) · القرار: ${at.mode==='ai'?'🧠 Claude':'📐 قواعد الدرجة'} · ${at.paper?'حساب تجريبي 🧪':'حساب حقيقي 💰'}`
+    :`<b style="color:${at.paper?'var(--sand)':'var(--down)'}">مفعّل ✓ ${at.paper?'على حساب تجريبي 🧪 (مال وهمي)':'على حساب حقيقي 💰'}</b> · القرار: ${at.mode==='ai'?'🧠 Claude يختار الصفقات':'📐 قواعد الدرجة'} · صفقة ≤${at.maxPositionUsd}$ · ${at.maxDailyTrades} صفقات/يوم · ${at.maxOpenPositions} مفتوحة كحد أقصى · وقف يومي ${at.dailyLossLimitUsd}$`;
   el.innerHTML=`
     <div style="display:grid;gap:9px;font-size:13.5px;line-height:2">
       <div>${dot(a.ai)}<b>المساعد الذكي:</b> ${a.ai?'مفعّل ✓ — اضغط الزر الذهبي ✦ أسفل الشاشة':'غير مفعّل — أضف <b>ANTHROPIC_API_KEY</b> في إعدادات Vercel'}</div>
       <div>${dot(t.tg&&t.chat)}<b>بوت تيليجرام:</b> ${t.tg?(t.chat?'مفعّل ✓ — أرسل «فرص» للبوت من هاتفك في أي وقت':'التوكن مضبوط — أرسل أي رسالة للبوت ليرد عليك بمعرّف TELEGRAM_CHAT'):'غير مفعّل — أضف <b>TELEGRAM_TOKEN</b> في إعدادات Vercel'}</div>
+      <div>${dot(at.broker&&at.enabled,at.broker&&!at.enabled)}<b>التداول الآلي (أمريكي):</b> ${atTxt}</div>
     </div>
     <details style="margin-top:12px">
       <summary style="cursor:pointer;color:var(--sand);font-weight:700;font-size:13px">خطوات الربط الكاملة (تُعمل مرة واحدة)</summary>
@@ -2791,14 +2804,16 @@ async function renderAgentCard(){
     <details style="margin-top:10px">
       <summary style="cursor:pointer;color:var(--down);font-weight:700;font-size:13px">⚠️ التداول الآلي (تنفيذ حقيقي بأموال — السوق الأمريكي فقط)</summary>
       <div style="margin-top:10px;padding:11px 13px;background:rgba(255,107,127,.08);border:1px solid rgba(255,107,127,.3);border-radius:10px;font-size:12px;line-height:2;color:var(--dim)">
-        <b style="color:var(--down)">متوقف تماماً افتراضياً.</b> عند تفعيله ينفّذ الوكيل صفقات فعلية عبر وسيط Alpaca ضمن حدود تضعها أنت (مبلغ الصفقة، عدد الصفقات، وقف خسارة يومي)، ويُلحق وقف الخسارة والهدف بكل صفقة من الوسيط نفسه.
+        <b style="color:var(--down)">متوقف تماماً افتراضياً.</b> عند تفعيله يقرأ <b>Claude</b> قبل افتتاح وول ستريت لقطة السوق ومراكزك المفتوحة، ويختار من قائمة المرشّحين ما يشتريه (أو يمتنع)، ويحدد وقف الخسارة والهدف لكل صفقة، ثم يرسل النظام أمر شراء بحد سعري عبر وسيط Alpaca مع وقف وهدف يُنفَّذهما الوسيط نفسه — كل ذلك ضمن حدود صارمة تضعها أنت لا يستطيع الوكيل تجاوزها.
         <ol style="margin:8px 18px 0 0;padding:0">
           <li>أنشئ حساباً مجانياً في <b>alpaca.markets</b> (ابدأ بحساب <b>Paper Trading</b> التجريبي بمال وهمي)</li>
           <li>انسخ مفتاحي API وأضفهما في Vercel باسم <b>ALPACA_KEY</b> و<b>ALPACA_SECRET</b></li>
-          <li>اترك <b>ALPACA_PAPER</b> بلا ضبط (تجريبي افتراضياً) — لا تضبطه <code>false</code> إلا بعد تجربة كافية بمال حقيقي فعلي</li>
-          <li>لتفعيل التنفيذ أضف <b>AUTOTRADE_ENABLED</b> بقيمة <code>true</code> — وبدونه يبقى كل شيء متوقفاً مهما ضبطت غيره</li>
-          <li>اختياري لتعديل الحدود الافتراضية (صفقة 200$، 5 صفقات مفتوحة، 3 صفقات/يوم، وقف يومي 100$، درجة 72+): <b>AUTOTRADE_MAX_POSITION_USD</b>، <b>AUTOTRADE_MAX_OPEN_POSITIONS</b>، <b>AUTOTRADE_MAX_DAILY_TRADES</b>، <b>AUTOTRADE_DAILY_LOSS_LIMIT_USD</b>، <b>AUTOTRADE_MIN_SCORE</b></li>
-          <li>أعد النشر — راسل البوت بـ«حالة التداول» للتحقق، و«أوقف الكل» لإغلاق طارئ فوري لكل الصفقات في أي وقت</li>
+          <li>اترك <b>ALPACA_PAPER</b> بلا ضبط (تجريبي افتراضياً) — لا تضبطه <code>false</code> إلا بعد أسابيع من المتابعة على الحساب التجريبي</li>
+          <li>القرار بالذكاء الاصطناعي تلقائي ما دام <b>ANTHROPIC_API_KEY</b> مضبوطاً (<b>AUTOTRADE_MODE</b>=<code>ai</code> افتراضياً · اضبطه <code>rules</code> للعودة إلى معادلة الدرجة فقط)</li>
+          <li>جرّب أولاً بلا تنفيذ: أرسل للبوت <b>«رأي الوكيل»</b> ليعرض ما كان سيشتريه ولماذا</li>
+          <li>لتفعيل التنفيذ أضف <b>AUTOTRADE_ENABLED</b> بقيمة <code>true</code> — وبدونه يبقى كل شيء متوقفاً مهما ضبطت غيره. أضف أيضاً <b>CRON_SECRET</b> (نص عشوائي طويل) لحماية رابط الوكيل</li>
+          <li>اختياري لتعديل الحدود الافتراضية (صفقة 200$، 5 صفقات مفتوحة، 3 صفقات/يوم، وقف يومي 100$، ثقة الوكيل 70+، انزلاق دخول 1٪): <b>AUTOTRADE_MAX_POSITION_USD</b>، <b>AUTOTRADE_MAX_OPEN_POSITIONS</b>، <b>AUTOTRADE_MAX_DAILY_TRADES</b>، <b>AUTOTRADE_DAILY_LOSS_LIMIT_USD</b>، <b>AUTOTRADE_AI_MIN_CONFIDENCE</b>، <b>AUTOTRADE_MAX_SLIPPAGE_PCT</b> · وللسماح للوكيل بإغلاق مركز قائم: <b>AUTOTRADE_AI_CAN_SELL</b>=<code>true</code></li>
+          <li>أعد النشر — راسل البوت بـ«حالة التداول» للتحقق، و«تداول الآن» لدورة فورية، و«أوقف الكل» لإغلاق طارئ فوري لكل الصفقات في أي وقت</li>
         </ol>
       </div>
     </details>`;
