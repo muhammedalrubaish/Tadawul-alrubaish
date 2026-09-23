@@ -89,9 +89,10 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 .stale{font-size:11px;opacity:.75;cursor:help} /* سهم لم يصله سعر حقيقي بعد رغم اتصال السوق */
 /* ===== وكيل رصد: زر ولوحة المحادثة الذكية ===== */
 #aiFab{position:fixed;bottom:calc(84px + env(safe-area-inset-bottom,0px));inset-inline-end:16px;z-index:70;width:54px;height:54px;border-radius:50%;background:var(--grad-gold);color:#140D00;font-size:23px;border:none;box-shadow:0 8px 22px rgba(0,0,0,.55);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit}
-#aiFab{transition:transform .35s cubic-bezier(.2,.9,.25,1.2),box-shadow .3s}
+#aiFab{transition:transform .35s cubic-bezier(.2,.9,.25,1.2),opacity .2s ease,box-shadow .3s}
 #aiFab:active{transform:scale(.94)}
-#aiFab.on{transform:rotate(90deg);box-shadow:0 8px 26px rgba(240,192,92,.35)}
+/* اللوحة تغطي موضع الزر عند الفتح: يختفي الزر بدوران وتصغير كي لا يظهر من خلالها أثناء الحركة */
+#aiFab.on{transform:rotate(90deg) scale(.5);opacity:0;pointer-events:none}
 /* لوحة المحادثة العائمة: تظهر بانزلاق وتلاشٍ ناعم من جهة الزر بدل الظهور المفاجئ */
 #aiPanel{position:fixed;bottom:calc(84px + env(safe-area-inset-bottom,0px));inset-inline-end:12px;z-index:71;width:min(410px,calc(100vw - 24px));height:min(560px,72vh);background:var(--panel);border:1px solid var(--line);border-radius:18px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.6);
   opacity:0;visibility:hidden;pointer-events:none;transform:translateY(22px) scale(.94);transform-origin:bottom left;
