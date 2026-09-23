@@ -1,6 +1,6 @@
 // ويبهوك تيليجرام — واجهة الوكيل من الهاتف
 // الأوامر: «فرص» فحص فوري · رمز سهم (2222 أو AAPL) بطاقة تحليل · أي سؤال آخر → المساعد الذكي
-const { api, send, TOKEN, CHAT, SECRET } = require('./_telegram');
+const { api, send, quickReplies, TOKEN, CHAT, SECRET } = require('./_telegram');
 const { snapshot, fmtOpps, fmtSym, esc } = require('./_market');
 const { ask, hasKey, providerLabel } = require('./_ai');
 const autotrade = require('./_autotrade');
@@ -140,8 +140,8 @@ module.exports = async (req, res) => {
       await send(chatId, 'المساعد الذكي غير مفعّل بعد — أضف <b>DEEPSEEK_API_KEY</b> (أو ANTHROPIC_API_KEY) في إعدادات Vercel.\nما زال بإمكانك إرسال «فرص» أو رمز سهم.');
       return done();
     }
-    const answer = await ask({ question: text });
-    await send(chatId, esc(answer));
+    const r = await ask({ question: text });
+    await send(chatId, esc(r.text), quickReplies(r.replies));
     return done();
   } catch (e) {
     try { await send(chatId, '⚠️ حدث خطأ: ' + esc(String((e && e.message) || e))); } catch (_) {}

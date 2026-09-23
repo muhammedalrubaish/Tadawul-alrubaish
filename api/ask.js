@@ -25,8 +25,8 @@ module.exports = async (req, res) => {
   if (!q) return res.status(400).json({ error: 'أرسل سؤالاً في الحقل q' });
 
   try {
-    const answer = await ask({ question: q, history: body.history, portfolio: body.portfolio });
-    return res.status(200).json({ answer });
+    const r = await ask({ question: q, history: body.history, portfolio: body.portfolio });
+    return res.status(200).json({ answer: r.text, replies: r.replies });
   } catch (e) {
     const code = e && e.code === 'NO_KEY' ? 503 : 502;
     return res.status(code).json({ error: String((e && e.message) || e) });

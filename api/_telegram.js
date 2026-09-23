@@ -18,7 +18,8 @@ async function api(method, payload) {
 }
 
 // إرسال نص (HTML) مع تقسيم تلقائي عند تجاوز حد تيليجرام 4096 حرفاً
-async function send(chatId, text) {
+// extra: حقول إضافية للرسالة الأخيرة (مثل reply_markup لأزرار الردود السريعة)
+async function send(chatId, text, extra) {
   const chunks = [];
   let t = String(text);
   while (t.length > 4000) {
@@ -28,9 +29,16 @@ async function send(chatId, text) {
     t = t.slice(cut);
   }
   chunks.push(t);
-  for (const c of chunks) {
-    await api('sendMessage', { chat_id: chatId, text: c, parse_mode: 'HTML', disable_web_page_preview: true });
+  for (let i = 0; i < chunks.length; i++) {
+    const payload = { chat_id: chatId, text: chunks[i], parse_mode: 'HTML', disable_web_page_preview: true };
+    if (extra && i === chunks.length - 1) Object.assign(payload, extra);
+    await api('sendMessage', payload);
   }
 }
 
-module.exports = { api, send, TOKEN, CHAT, SECRET };
+// لوحة أزرار تحت حقل الكتابة: كل زر يرسل نصه كرسالة عادية (تختفي بعد الضغط)
+const quickReplies = replies => (Array.isArray(replies) && replies.length)
+  ? { reply_markup: { keyboard: replies.map(r => [{ text: String(r) }]), resize_keyboard: true, one_time_keyboard: true, input_field_placeholder: 'اختر رداً أو اكتب سؤالك…' } }
+  : { reply_markup: { remove_keyboard: true } };
+
+module.exports = { api, send, quickReplies, TOKEN, CHAT, SECRET };
