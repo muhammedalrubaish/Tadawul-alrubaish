@@ -57,8 +57,13 @@ async function yahooOne(ysym) {
       if (m && m.regularMarketPrice > 0) {
         const ind = (res0.indicators && res0.indicators.quote && res0.indicators.quote[0]) || {};
         const closes = (ind.close || []).filter(x => x != null);
-        // إدراج السعر اللحظي كآخر إغلاق ليعكس RSI حركة اليوم
-        if (closes.length && m.regularMarketPrice !== closes[closes.length - 1]) closes.push(+m.regularMarketPrice);
+        // إدراج السعر اللحظي كآخر إغلاق ليعكس RSI حركة اليوم — فقط إن لم تكن شمعة اليوم موجودة أصلاً في السلسلة
+        // (أثناء الجلسة تكون شمعة اليوم آخر عنصر؛ إضافة السعر مجدداً تُحسب يوماً مكرراً وتُحرّف RSI)
+        const ts = res0.timestamp || [];
+        const lastTs = ts.length ? ts[ts.length - 1] : 0;
+        const sameDay = lastTs && m.regularMarketTime && Math.floor(lastTs / 86400) === Math.floor(m.regularMarketTime / 86400);
+        if (closes.length && !sameDay) closes.push(+m.regularMarketPrice);
+        else if (closes.length) closes[closes.length - 1] = +m.regularMarketPrice;
         return {
           price: +m.regularMarketPrice,
           open: +(m.chartPreviousClose || m.previousClose || 0),
