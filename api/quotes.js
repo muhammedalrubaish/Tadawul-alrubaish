@@ -56,17 +56,26 @@ async function yahooOne(ysym) {
       const m = res0 && res0.meta;
       if (m && m.regularMarketPrice > 0) {
         const ind = (res0.indicators && res0.indicators.quote && res0.indicators.quote[0]) || {};
-        const closes = (ind.close || []).filter(x => x != null);
-        // إدراج السعر اللحظي كآخر إغلاق ليعكس RSI حركة اليوم — فقط إن لم تكن شمعة اليوم موجودة أصلاً في السلسلة
-        // (أثناء الجلسة تكون شمعة اليوم آخر عنصر؛ إضافة السعر مجدداً تُحسب يوماً مكرراً وتُحرّف RSI)
+        const price = +m.regularMarketPrice;
+        // أزواج (وقت، إغلاق) متوافقة مع الطوابع الزمنية — تصفية القيم الفارغة دون فقدان المحاذاة
         const ts = res0.timestamp || [];
-        const lastTs = ts.length ? ts[ts.length - 1] : 0;
-        const sameDay = lastTs && m.regularMarketTime && Math.floor(lastTs / 86400) === Math.floor(m.regularMarketTime / 86400);
-        if (closes.length && !sameDay) closes.push(+m.regularMarketPrice);
-        else if (closes.length) closes[closes.length - 1] = +m.regularMarketPrice;
+        const bars = ts.map((t, i) => [t, ind.close ? ind.close[i] : null]).filter(b => b[1] != null && b[1] > 0);
+        // يوم التداول بتوقيت البورصة (gmtoffset بالثواني) لمعرفة هل شمعة اليوم موجودة في السلسلة
+        const off = +m.gmtoffset || 0;
+        const dayOf = t => Math.floor((t + off) / 86400);
+        const lastT = bars.length ? bars[bars.length - 1][0] : 0;
+        const todayInSeries = !!(lastT && m.regularMarketTime && dayOf(lastT) === dayOf(m.regularMarketTime));
+        // الإغلاق السابق الحقيقي = إغلاق آخر جلسة قبل جلسة السعر الحالي
+        // (chartPreviousClose هو الإغلاق قبل بداية نافذة الأشهر الثلاثة — كان يجعل «تغير اليوم» تغيّر 3 أشهر)
+        const prevBar = todayInSeries ? bars[bars.length - 2] : bars[bars.length - 1];
+        const prevClose = prevBar ? +prevBar[1] : 0;
+        // RSI: السعر اللحظي يحل محل شمعة اليوم إن وُجدت، وإلا يُضاف كآخر إغلاق (بلا يوم مكرر)
+        const closes = bars.map(b => +b[1]);
+        if (closes.length && todayInSeries) closes[closes.length - 1] = price;
+        else if (closes.length) closes.push(price);
         return {
-          price: +m.regularMarketPrice,
-          open: +(m.chartPreviousClose || m.previousClose || 0),
+          price,
+          open: prevClose,
           rsi: computeRSI(closes),
           volRatio: computeVolRatio(ind.volume)
         };
