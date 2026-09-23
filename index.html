@@ -2885,7 +2885,8 @@ function renderAgentTrades(){
     d.pending.forEach(o=>{h+=`<div class="jrow"><div class="jrow-left"><div class="jrow-icon open-t">⏳</div><div class="jrow-info"><div class="jrow-name">${esc(o.name)} <span class="mono" style="font-size:11px;color:var(--dim)">${esc(o.sym)}</span></div><div class="jrow-detail">${o.qty} سهم${o.limit?` · بحد ${fmt(o.limit)}$`:' · بسعر السوق'} · أُرسل ${dtShort(o.submittedAt)} · يُلغى تلقائياً إن لم يُنفَّذ خلال الدورة التالية</div></div></div></div>`;});
   }
   h+=`<div style="padding:12px 16px 4px;font-weight:800;font-size:13.5px">✅ صفقات مغلقة <span style="color:var(--dim);font-weight:400">(آخر ${d.closed.length})</span></div>`;
-  if(!d.closed.length)h+=`<div class="empty" style="padding:14px">لا صفقات مغلقة بعد</div>`;
+  if(d.fillsError)h+=`<div class="empty" style="padding:14px;color:var(--sand)">⚠️ تعذّر جلب سجل الصفقات المغلقة: ${esc(d.fillsError)}</div>`;
+  else if(!d.closed.length)h+=`<div class="empty" style="padding:14px">لا صفقات مغلقة بعد</div>`;
   d.closed.forEach(t=>{
     h+=`<div class="jrow">
       <div class="jrow-left"><div class="jrow-icon cl">${t.pl>=0?'✅':'❌'}</div><div class="jrow-info">
