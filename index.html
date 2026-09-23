@@ -114,6 +114,32 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 .aim.b{align-self:flex-start;background:#101215;border:1px solid var(--line)}
 .aim.err{border-color:rgba(255,107,127,.4);color:var(--down)}
 .aim.typing{color:var(--dim)}
+/* توحيد الأيقونات (الإيموجي والأعلام): أحادية اللون بالذهبي في كل الصفحات — يلفّها سكربت في span.emj */
+.emj{display:inline-block;filter:grayscale(1) sepia(1) saturate(3.2) hue-rotate(-8deg) brightness(1.15) contrast(1.05)}
+/* فوق الأزرار الذهبية أو الخضراء المصمتة تصير داكنة بلون نص الزر، وإلا اختفت */
+.abtn .emj,.mtab.active .emj,.airow button .emj,.sbtn .emj,.chip.on .emj,.reg-btn .emj,#aiFab .emj,.act-link .emj{filter:grayscale(1) contrast(.8) brightness(.28)}
+/* لوحة تفعيل التداول بالذكاء الاصطناعي */
+.act-card{margin:4px 16px 14px;border:1px solid rgba(240,192,92,.3);border-radius:14px;background:rgba(240,192,92,.04);padding:12px 14px}
+.act-head{font-weight:800;font-size:14px;display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.act-state{margin-inline-start:auto;font-size:11px;padding:3px 10px;border-radius:99px;background:rgba(240,192,92,.14);color:var(--sand);border:1px solid rgba(240,192,92,.35)}
+.act-state.on{background:rgba(49,227,154,.14);color:var(--up);border-color:rgba(49,227,154,.35)}
+.act-row{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px solid rgba(38,40,47,.6)}
+.act-row:last-of-type{border-bottom:none}
+.act-row b{display:block;font-size:12.5px}
+.act-row small{display:block;font-size:11.5px;color:var(--dim);line-height:1.7}
+.act-dot{flex-shrink:0;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:800;margin-top:2px}
+.act-dot.ok{background:rgba(49,227,154,.16);color:var(--up)} .act-dot.no{background:rgba(255,107,127,.16);color:var(--down)} .act-dot.opt{background:rgba(138,163,192,.16);color:var(--dim)}
+.act-guide{margin-top:10px;padding:10px 12px;border-radius:10px;background:rgba(0,0,0,.35);border:1px dashed rgba(240,192,92,.35);font-size:12px;line-height:1.9}
+.act-guide ol{margin:4px 18px 8px 0;padding:0;color:var(--dim)}
+.act-guide small{display:block;color:var(--dim);font-size:11px;margin-top:6px}
+.act-link{display:inline-block;background:var(--grad-gold);color:#140D00;font-weight:800;border-radius:9px;padding:6px 14px;text-decoration:none;font-size:12.5px}
+.act-btns{display:flex;gap:8px;flex-wrap:wrap}
+.act-btns .quick-log{flex:1;min-width:150px}
+.act-btns .quick-log:disabled{opacity:.45;cursor:not-allowed}
+.act-run{background:rgba(240,192,92,.14)!important;border-color:rgba(240,192,92,.45)!important;color:var(--sand)!important}
+.act-res{margin-top:10px;padding:10px 12px;border-radius:10px;background:#0A0B0D;border:1px solid var(--line);font-size:12.5px;line-height:1.9}
+.act-res>b{display:block;margin-bottom:4px} .act-res p{margin:4px 0} .act-res small{color:var(--dim)}
+.act-res summary{cursor:pointer;color:var(--sand);font-weight:700;margin-top:6px}
 /* ردود سريعة تحت رد المساعد */
 .aiq{display:flex;flex-wrap:wrap;gap:6px;align-self:flex-start;max-width:92%;animation:aiPop .3s ease .12s both}
 .aiq button{background:rgba(240,192,92,.1);border:1px solid rgba(240,192,92,.35);color:var(--sand);border-radius:99px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s}
@@ -825,6 +851,35 @@ footer{padding-bottom:max(18px,calc(env(safe-area-inset-bottom) + 14px))}
 <div class="toast" id="toast"></div>
 
 <script>
+/* توحيد لون الأيقونات: يلفّ كل إيموجي أو علم في النص بـ span.emj (يُلوَّن بالذهبي من CSS)
+   ويراقب أي محتوى يُرسم لاحقاً (البطاقات، المحادثة، التنبيهات) ليطبّق عليه التلوين نفسه */
+(function(){
+  const RE=/\p{Regional_Indicator}\p{Regional_Indicator}|\p{Extended_Pictographic}(?:\uFE0F|\u20E3|[\u{1F3FB}-\u{1F3FF}]|\u200D\p{Extended_Pictographic}\uFE0F?)*/gu;
+  const SKIP=new Set(['SCRIPT','STYLE','TEXTAREA','INPUT','OPTION','SELECT','DATALIST','TITLE','CANVAS','svg']);
+  function wrap(t){
+    const p=t.parentNode;
+    if(!p||p.nodeType!==1||SKIP.has(p.nodeName)||p.closest('.emj,svg,select,datalist'))return;
+    const s=t.nodeValue;RE.lastIndex=0;if(!s||!RE.test(s))return;
+    RE.lastIndex=0;const f=document.createDocumentFragment();let last=0,m;
+    while((m=RE.exec(s))){
+      if(m.index>last)f.appendChild(document.createTextNode(s.slice(last,m.index)));
+      const sp=document.createElement('span');sp.className='emj';sp.textContent=m[0];f.appendChild(sp);
+      last=m.index+m[0].length;
+    }
+    if(last<s.length)f.appendChild(document.createTextNode(s.slice(last)));
+    p.replaceChild(f,t);
+  }
+  function walk(n){
+    if(n.nodeType===3){wrap(n);return;}
+    if(n.nodeType!==1||SKIP.has(n.nodeName))return;
+    const w=document.createTreeWalker(n,NodeFilter.SHOW_TEXT),list=[];
+    while(w.nextNode())list.push(w.currentNode);
+    list.forEach(wrap);
+  }
+  walk(document.body);
+  new MutationObserver(ms=>{for(const m of ms){if(m.type==='characterData')wrap(m.target);else m.addedNodes.forEach(walk);}})
+    .observe(document.body,{childList:true,subtree:true,characterData:true});
+})();
 /* تسجيل Service Worker لدعم حفظ الموقع كتطبيق والعمل دون اتصال */
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js').catch(()=>{});});
@@ -2885,6 +2940,7 @@ function renderAgentTrades(){
     <div class="jst"><div class="l">نقد متاح</div><div class="v mono">${fmt(a.cash)}$</div></div>
   </div>`;
   if(a.blocked)h+=`<div class="risk-note" style="margin:0 16px 12px"><b>🛑 الحساب موقوف لدى الوسيط</b>لن تُفتح صفقات جديدة — راجع حسابك في Alpaca.</div>`;
+  h+=agentActivationHtml(d);
   // المراكز المفتوحة مع موقع السعر بين الوقف والهدف
   h+=`<div style="padding:12px 16px 4px;font-weight:800;font-size:13.5px">📌 مراكز مفتوحة <span style="color:var(--dim);font-weight:400">(${d.positions.length})</span></div>`;
   if(!d.positions.length)h+=`<div class="empty" style="padding:14px">لا مراكز مفتوحة الآن — الوكيل يقرر قبل افتتاح وول ستريت يومياً</div>`;
@@ -2916,10 +2972,80 @@ function renderAgentTrades(){
       <div class="jrow-right"><span class="jrow-pnl mono" style="color:${clr(t.pl)}">${fmtUsd(t.pl)}</span><span class="jrow-pnlp mono" style="color:${clr(t.plPct)}">${t.plPct>=0?'+':''}${fmt(t.plPct)}%</span></div>
     </div>`;
   });
+  const prevOut=document.getElementById('actOut');const keepOut=prevOut?prevOut.innerHTML:'';
   h+=`<div class="calc-note" style="margin:0;padding:10px 16px;border-top:1px dashed var(--line)">الوقف والهدف يُنفَّذهما الوسيط تلقائياً. للإيقاف الطارئ أرسل «أوقف الكل» لبوت تيليجرام. الحدود: صفقة ≤${d.limits.maxPositionUsd}$ · ${d.limits.maxOpenPositions} مفتوحة · ${d.limits.maxDailyTrades}/يوم · وقف يومي ${d.limits.dailyLossLimitUsd}$.</div>`;
   body.innerHTML=h;
+  if(keepOut){const o=document.getElementById('actOut');if(o)o.innerHTML=keepOut;}
 }
 document.getElementById('agentTradesRefresh').addEventListener('click',()=>loadAgentTrades(true));
+
+/* ===== تفعيل التداول بالذكاء الاصطناعي: قائمة جاهزية + معاينة + تشغيل فوري ===== */
+const VERCEL_ENV_URL='https://vercel.com/muhammedalrubaishs-projects/tadawul-alrubaish/settings/environment-variables';
+function agentActivationHtml(d){
+  const r=d.ready||{};
+  const row=(ok,label,note,optional)=>`<div class="act-row"><span class="act-dot ${ok?'ok':optional?'opt':'no'}">${ok?'✓':optional?'–':'✕'}</span><div><b>${label}</b><small>${note}</small></div></div>`;
+  const steps=[
+    row(r.aiKey,'مفتاح الذكاء الاصطناعي',r.aiKey?`القرار عبر ${esc(d.brain)}`:`أضف <b>${esc(r.aiKeyName||'DEEPSEEK_API_KEY')}</b>`),
+    row(true,'ربط الوسيط Alpaca',d.paper?'حساب تجريبي بمال وهمي — الوضع الآمن':'<span style="color:var(--down)">حساب حقيقي بمال فعلي</span>'),
+    row(true,'رمز الحماية AI_PASS','مضبوط — بيانات الحساب محمية'),
+    row(r.cron,'حماية الجدولة CRON_SECRET',r.cron?'مضبوط':'أضف نصاً عشوائياً طويلاً باسم <b>CRON_SECRET</b>'),
+    row(r.telegram,'إشعارات تيليجرام',r.telegram?'مفعّلة — تصلك كل صفقة وسببها':'اختياري — بدونه تتابع الصفقات من هنا فقط',true),
+    row(d.enabled,'المفتاح الرئيسي AUTOTRADE_ENABLED',d.enabled?'مفعّل — الوكيل يشتري تلقائياً قبل افتتاح وول ستريت يومياً':'متوقف — الوكيل يحلل فقط ولا يشتري')
+  ].join('');
+  const guide=d.enabled?'':`<div class="act-guide">
+      <b>⚡ لتشغيل الشراء التلقائي</b>
+      <ol>
+        <li>جرّب «معاينة قرار الوكيل» عدة أيام، وتأكد أن قراراته وأسبابه منطقية</li>
+        <li>افتح إعدادات Vercel ← Environment Variables</li>
+        <li>أضف <b>AUTOTRADE_ENABLED</b> بالقيمة <code>true</code> لبيئة Production</li>
+        <li>من Deployments اضغط Redeploy — بعدها يظهر هنا «مفعّل ✓»</li>
+      </ol>
+      <a class="act-link" href="${VERCEL_ENV_URL}" target="_blank" rel="noopener">فتح إعدادات Vercel ↗</a>
+      <small>المفتاح الرئيسي متعمَّد خارج التطبيق: لا يستطيع أحد تشغيل الشراء من صفحة ويب حتى لو عرف رمزك.</small>
+    </div>`;
+  const canPreview=r.aiKey||d.mode==='rules';
+  return `<div class="act-card">
+    <div class="act-head">🧠 تفعيل التداول بالذكاء الاصطناعي <span class="act-state ${d.enabled?'on':''}">${d.enabled?'مفعّل':'متوقف'}</span></div>
+    ${steps}${guide}
+    <div class="act-btns">
+      <button class="quick-log" id="actPreview" ${canPreview?'':'disabled'}>🧠 معاينة قرار الوكيل الآن</button>
+      ${d.enabled?'<button class="quick-log act-run" id="actRun">⚡ تداول الآن</button>':''}
+    </div>
+    <div id="actOut"></div>
+  </div>`;
+}
+// عرض نتيجة الدورة (معاينة أو تنفيذ) داخل البطاقة
+function agentCycleHtml(r,dry){
+  if(!r)return'';
+  if(r.skipped)return`<div class="act-res"><b>⏭ لم تُنفَّذ الدورة</b>${esc(String(r.skipped))}</div>`;
+  if(r.stopped)return`<div class="act-res" style="border-color:rgba(255,107,127,.4)"><b>🛑 توقف تلقائي</b>خسارة اليوم ${r.dailyPL}$ تجاوزت الحد ${r.limit}$.</div>`;
+  let h=`<div class="act-res"><b>${dry?'🧠 معاينة — لم يُرسل أي أمر':'⚡ نتيجة الدورة'}</b>`;
+  if(r.marketView)h+=`<p>📊 ${esc(r.marketView)}</p>`;
+  if(r.executed&&r.executed.length)h+=r.executed.map(e=>`<p>🟢 ${dry?'كان سيشتري':'أمر شراء'} <b>${esc(e.name)}</b> <span class="mono">${esc(e.sym)}</span> — ${e.qty} سهم بحد ${fmt(e.limit)}$ · <span style="color:var(--down)">وقف ${fmt(e.sl)}</span> · <span style="color:var(--up)">هدف ${fmt(e.tp)}</span> · ثقة ${e.confidence}${e.reason?`<br><small>↳ ${esc(e.reason)}</small>`:''}</p>`).join('');
+  else h+=`<p>⚪ لا صفقة شراء اليوم — لم تستوفِ أي فرصة الشروط.</p>`;
+  if(r.closed&&r.closed.length)h+=r.closed.map(x=>`<p>🔻 ${dry?'كان سيغلق':'إغلاق'} <span class="mono">${esc(x.sym)}</span> — ${esc(x.reason||'')}</p>`).join('');
+  if(r.considered&&r.considered.length)h+=`<details><summary>مرشّحون استُبعدوا (${r.considered.length})</summary>${r.considered.map(c=>`<p><span class="mono">${esc(c.sym)}</span> · ثقة ${c.confidence} — ${esc(String(c.reason||'').slice(0,160))}</p>`).join('')}</details>`;
+  if(r.failed&&r.failed.length)h+=r.failed.map(f=>`<p style="color:var(--down)">⚠️ ${esc(f.sym)}: ${esc(f.error)}</p>`).join('');
+  return h+'</div>';
+}
+async function agentAction(action){
+  const out=document.getElementById('actOut');if(!out)return;
+  if(action==='run'&&!confirm('تشغيل دورة شراء فعلية الآن؟\nسيُرسل الوكيل أوامر شراء حقيقية إلى حسابك في Alpaca ضمن الحدود المضبوطة.'))return;
+  const btns=document.querySelectorAll('#actPreview,#actRun');btns.forEach(b=>b.disabled=true);
+  out.innerHTML=`<div class="act-res"><b>⏳ ${action==='run'?'أشغّل الدورة…':'أفحص السوق الأمريكي وأستشير الوكيل…'}</b>قد يستغرق ذلك حتى دقيقة.</div>`;
+  try{
+    const r=await fetch('/api/trades',{method:'POST',headers:{'Content-Type':'application/json','x-rasad-pass':localStorage.getItem('rasad_ai_pass')||''},body:JSON.stringify({action})});
+    const d=await r.json().catch(()=>({}));
+    out.innerHTML=r.ok?agentCycleHtml(d.result,action==='preview'):`<div class="act-res" style="border-color:rgba(255,107,127,.4)"><b>⚠️ تعذّرت الدورة</b>${esc(d.error||('خطأ '+r.status))}</div>`;
+    if(r.ok&&action==='run')setTimeout(()=>loadAgentTrades(true),1500);
+  }catch(e){out.innerHTML=`<div class="act-res"><b>⚠️ تعذّر الاتصال</b>${esc(e.message||e)}</div>`;}
+  finally{btns.forEach(b=>b.disabled=false);}
+}
+// الأزرار تُعاد رسمها مع البطاقة، لذا يُربط الحدث بالتفويض على الحاوية
+document.getElementById('agentTradesBody').addEventListener('click',e=>{
+  const b=e.target.closest('#actPreview,#actRun');if(!b||b.disabled)return;
+  agentAction(b.id==='actRun'?'run':'preview');
+});
 // تحديث تلقائي كل دقيقة ما دامت صفحة «محفظتي» ظاهرة
 setInterval(()=>{if(activeView()==='port')loadAgentTrades();},60000);
 
