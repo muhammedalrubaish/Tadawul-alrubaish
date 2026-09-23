@@ -4,6 +4,8 @@ const broker = require('./_broker');
 const autotrade = require('./_autotrade');
 const ai = require('./_ai');
 const NAMES = require('./_names');
+const { snapshot } = require('./_market');
+const tg = require('./_telegram');
 
 const PASS = String(process.env.AI_PASS || '').trim();
 const n2 = v => +(+v || 0).toFixed(2);
@@ -39,14 +41,35 @@ module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-rasad-pass');
   res.setHeader('Cache-Control', 'no-store');
   if (req.method === 'OPTIONS') return res.status(204).end();
-  if (req.method !== 'GET') return res.status(405).json({ error: 'GET فقط' });
+  if (req.method !== 'GET' && req.method !== 'POST') return res.status(405).json({ error: 'GET أو POST فقط' });
 
   if (!PASS) return res.status(403).json({ error: 'اضبط AI_PASS في إعدادات Vercel أولاً — بيانات حساب الوسيط لا تُعرض بلا رمز', needPass: true });
   if (String(req.headers['x-rasad-pass'] || '') !== PASS) return res.status(401).json({ error: 'رمز المساعد غير صحيح' });
 
   const c = autotrade.cfg();
-  const base = { configured: broker.hasKeys(), paper: broker.PAPER, enabled: c.enabled, mode: c.mode, brain: ai.providerLabel(), limits: { maxPositionUsd: c.maxPositionUsd, maxOpenPositions: c.maxOpenPositions, maxDailyTrades: c.maxDailyTrades, dailyLossLimitUsd: c.dailyLossLimitUsd } };
+  const base = {
+    configured: broker.hasKeys(), paper: broker.PAPER, enabled: c.enabled, mode: c.mode, brain: ai.providerLabel(),
+    // قائمة جاهزية التفعيل تُعرض في التطبيق
+    ready: { aiKey: ai.hasKey(), aiKeyName: ai.keyName(), cron: !!String(process.env.CRON_SECRET || '').trim(), telegram: !!(tg.TOKEN && tg.CHAT) },
+    limits: { maxPositionUsd: c.maxPositionUsd, maxOpenPositions: c.maxOpenPositions, maxDailyTrades: c.maxDailyTrades, dailyLossLimitUsd: c.dailyLossLimitUsd }
+  };
   if (!base.configured) return res.status(200).json(base);
+
+  // POST {action:'preview'|'run'}: معاينة قرار الوكيل بلا تنفيذ، أو دورة فعلية فورية (تتطلب AUTOTRADE_ENABLED)
+  if (req.method === 'POST') {
+    const action = String((req.body || {}).action || '');
+    if (action !== 'preview' && action !== 'run') return res.status(400).json({ error: 'action يجب أن يكون preview أو run' });
+    if (action === 'run' && !c.enabled) return res.status(409).json({ error: 'التنفيذ متوقف — اضبط AUTOTRADE_ENABLED=true في Vercel وأعد النشر أولاً' });
+    try {
+      const list = await snapshot('us');
+      const r = await autotrade.runCycle(list, { dry: action === 'preview' });
+      // الدورة الفعلية تُبلَّغ في تيليجرام أيضاً ليبقى سجلها في مكان واحد
+      if (action === 'run' && tg.TOKEN && tg.CHAT) { try { await tg.send(tg.CHAT, autotrade.fmtCycle(r)); } catch (_) {} }
+      return res.status(200).json({ ok: true, action, result: r });
+    } catch (e) {
+      return res.status(502).json({ error: 'لم يُنفَّذ أي أمر: ' + String((e && e.message) || e) });
+    }
+  }
 
   try {
     // سجل التنفيذات ثانوي: فشله لا يُسقط الحساب والمراكز المفتوحة، بل يُعرض كتنبيه
