@@ -11,6 +11,7 @@
     "api/scan.js": { "maxDuration": 30 },
     "api/news.js": { "maxDuration": 30 },
     "api/history.js": { "maxDuration": 30 },
-    "api/trades.js": { "maxDuration": 60 }
+    "api/trades.js": { "maxDuration": 60 },
+    "api/login.js": { "maxDuration": 10 }
   }
 }
