@@ -151,6 +151,19 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 .perf-verdict b{display:block;font-size:13px}
 .perf-verdict.p{border-color:rgba(49,227,154,.4);background:rgba(49,227,154,.07)} .perf-verdict.n{border-color:rgba(255,107,127,.4);background:rgba(255,107,127,.07)} .perf-verdict.u{background:rgba(240,192,92,.05)}
 .perf-note{display:block;font-size:10.5px;color:var(--dim);line-height:1.8;margin-top:8px}
+/* شريط نوع الحساب */
+.mode-banner{margin:12px 16px 4px;padding:11px 13px;border-radius:12px;font-size:12px;line-height:1.85}
+.mode-banner>b{display:block;font-size:13.5px;margin-bottom:2px}
+.mode-banner>span{color:var(--dim)}
+.mode-banner.paper{background:rgba(87,166,255,.08);border:1px solid rgba(87,166,255,.4)}
+.mode-banner.paper>b{color:var(--blue)}
+.mode-banner.live{background:rgba(255,107,127,.1);border:1px solid rgba(255,107,127,.55)}
+.mode-banner.live>b{color:var(--down)}
+.mode-banner details{margin-top:8px}
+.mode-banner summary{cursor:pointer;color:var(--sand);font-weight:800}
+.mode-banner ol{margin:8px 18px 6px 0;padding:0;color:var(--dim)} .mode-banner ol b{color:var(--text)}
+.mode-banner small{display:block;color:var(--dim);font-size:11px;line-height:1.9}
+.fake-tag{font-size:10px;padding:0 6px;border-radius:99px;background:rgba(87,166,255,.15);color:var(--blue);margin-inline-start:4px;vertical-align:1px}
 /* ردود سريعة تحت رد المساعد */
 .aiq{display:flex;flex-wrap:wrap;gap:6px;align-self:flex-start;max-width:92%;animation:aiPop .3s ease .12s both}
 .aiq button{background:rgba(240,192,92,.1);border:1px solid rgba(240,192,92,.35);color:var(--sand);border-radius:99px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s}
@@ -3008,12 +3021,13 @@ function renderAgentTrades(){
   if(d.error){body.innerHTML=note('⚠️','تعذّر الاتصال بالوسيط',esc(d.error));return;}
   const a=d.account,st=d.stats;
   if(sub)sub.innerHTML=`${d.paper?'حساب تجريبي 🧪 (مال وهمي)':'<span style="color:var(--down)">حساب حقيقي 💰</span>'} · التنفيذ ${d.enabled?'<span style="color:var(--up)">مفعّل ✓</span>':'<span style="color:var(--sand)">متوقف</span>'} · القرار ${d.mode==='ai'?'🧠 '+esc(d.brain):'📐 قواعد الدرجة'} · آخر تحديث ${new Date(AGT.at).toLocaleTimeString('en-GB').slice(0,5)}`;
-  let h=`<div class="jstats">
-    <div class="jst"><div class="l">حقوق الملكية</div><div class="v mono">${fmt(a.equity)}$</div></div>
+  const fake=d.paper?' <span class="fake-tag">وهمي</span>':'';
+  let h=agentModeBanner(d)+`<div class="jstats">
+    <div class="jst"><div class="l">حقوق الملكية${fake}</div><div class="v mono">${fmt(a.equity)}$</div></div>
     <div class="jst"><div class="l">ربح/خسارة اليوم</div><div class="v mono" style="color:${clr(a.dailyPL)}">${fmtUsd(a.dailyPL)}</div></div>
     <div class="jst"><div class="l">غير محقق (مفتوح)</div><div class="v mono" style="color:${clr(st.unrealized)}">${fmtUsd(st.unrealized)}</div></div>
     <div class="jst"><div class="l">محقق (مغلق)</div><div class="v mono" style="color:${clr(st.realized)}">${fmtUsd(st.realized)}</div><div style="font-size:11px;color:var(--dim);margin-top:2px">${st.closed} صفقة · ${st.wins} رابحة / ${st.losses} خاسرة</div></div>
-    <div class="jst"><div class="l">نقد متاح</div><div class="v mono">${fmt(a.cash)}$</div></div>
+    <div class="jst"><div class="l">نقد متاح${fake}</div><div class="v mono">${fmt(a.cash)}$</div></div>
   </div>`;
   if(a.blocked)h+=`<div class="risk-note" style="margin:0 16px 12px"><b>🛑 الحساب موقوف لدى الوسيط</b>لن تُفتح صفقات جديدة — راجع حسابك في Alpaca.</div>`;
   h+=agentPerfHtml(d.perf,d.enabled);
@@ -3056,6 +3070,29 @@ function renderAgentTrades(){
 }
 document.getElementById('agentTradesRefresh').addEventListener('click',()=>loadAgentTrades(true));
 
+/* ===== شريط نوع الحساب: تجريبي (مال وهمي) أو حقيقي، مع دليل التحويل إلى Live ===== */
+function agentModeBanner(d){
+  if(!d.paper)return`<div class="mode-banner live">
+    <b>💰 حساب حقيقي — أموال حقيقية</b>
+    <span>كل صفقة يشتريها الوكيل تُنفَّذ بمالك الفعلي في Alpaca. للإيقاف الفوري أرسل «أوقف الكل» لبوت تيليجرام.</span>
+  </div>`;
+  return`<div class="mode-banner paper">
+    <b>🧪 حساب تجريبي — الأموال وهمية وليست حقيقية</b>
+    <span>الرصيد والصفقات هنا محاكاة في Alpaca Paper Trading. لا ربح ولا خسارة حقيقية، والهدف قياس فعالية الوكيل قبل أي مال فعلي.</span>
+    <details>
+      <summary>كيف أنتقل إلى حساب حقيقي بمال فعلي (Live)؟</summary>
+      <ol>
+        <li><b>انتظر حكم التجربة:</b> لا تنتقل قبل أن يظهر «مقنع» في بطاقة «تجربة الشهر».</li>
+        <li><b>افتح حساب Live في Alpaca:</b> من alpaca.markets أكمل التحقق من الهوية وأودع المال. تحقق أولاً أن Alpaca يفتح حسابات حقيقية للمقيمين في بلدك.</li>
+        <li><b>ولّد مفاتيح Live:</b> من أعلى لوحة Alpaca بدّل من Paper إلى Live، ثم API Keys. مفاتيح Live مختلفة عن مفاتيح الحساب التجريبي.</li>
+        <li><b>حدّث Vercel:</b> ضع مفتاحي Live في <code>ALPACA_KEY</code> و<code>ALPACA_SECRET</code>، وأضف <code>ALPACA_PAPER</code> بالقيمة <code>false</code> بلا مسافات، ثم أعد النشر.</li>
+        <li><b>ابدأ صغيراً:</b> خفّض <code>AUTOTRADE_MAX_POSITION_USD</code> و<code>AUTOTRADE_DAILY_LOSS_LIMIT_USD</code> في الأسابيع الأولى.</li>
+      </ol>
+      <small>⚠️ يجب تغيير المفاتيح و<code>ALPACA_PAPER</code> معاً. إن اختلفا يرفض Alpaca الاتصال ولا يُنفَّذ أي أمر، وهذا فشل آمن.<br>⚠️ في الحساب الحقيقي الأقل من 25 ألف دولار، يقيّد نظام «المتداول اليومي» (PDT) الشراء والبيع في اليوم نفسه بثلاث مرات كل خمسة أيام عمل.<br>🔁 تحوّل هذه اللوحة إلى شريط أحمر «حساب حقيقي» تلقائياً عند التفعيل.</small>
+    </details>
+  </div>`;
+}
+
 /* ===== تقرير الفعالية: تجربة الشهر بمعايير محددة مسبقاً ===== */
 function agentPerfHtml(p,enabled){
   if(!p)return'';
@@ -3095,7 +3132,7 @@ function agentActivationHtml(d){
   const row=(ok,label,note,optional)=>`<div class="act-row"><span class="act-dot ${ok?'ok':optional?'opt':'no'}">${ok?'✓':optional?'–':'✕'}</span><div><b>${label}</b><small>${note}</small></div></div>`;
   const steps=[
     row(r.aiKey,'مفتاح الذكاء الاصطناعي',r.aiKey?`القرار عبر ${esc(d.brain)}`:`أضف <b>${esc(r.aiKeyName||'DEEPSEEK_API_KEY')}</b>`),
-    row(true,'ربط الوسيط Alpaca',d.paper?'حساب تجريبي بمال وهمي — الوضع الآمن':'<span style="color:var(--down)">حساب حقيقي بمال فعلي</span>'),
+    row(true,'ربط الوسيط Alpaca',d.paper?'حساب تجريبي (Paper) — الأموال وهمية وليست حقيقية':'<span style="color:var(--down)">حساب حقيقي (Live) — أموال حقيقية</span>'),
     row(true,'رمز الحماية AI_PASS','مضبوط — بيانات الحساب محمية'),
     row(r.cron,'حماية الجدولة CRON_SECRET',r.cron?'مضبوط':'أضف نصاً عشوائياً طويلاً باسم <b>CRON_SECRET</b>'),
     row(r.telegram,'إشعارات تيليجرام',r.telegram?'مفعّلة — تصلك كل صفقة وسببها':'اختياري — بدونه تتابع الصفقات من هنا فقط',true),
