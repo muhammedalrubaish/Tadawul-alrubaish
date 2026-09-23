@@ -1,7 +1,7 @@
 // منطق التداول الآلي — السوق الأمريكي فقط، ضمن حدود صارمة مضبوطة بمتغيرات بيئة
 // مبدأ الأمان: كل حد أقصى يُقرأ من البيئة بقيمة افتراضية متحفظة، والمفتاح الرئيسي (AUTOTRADE_ENABLED)
 // يجب ضبطه صراحة إلى "true" وإلا فالتداول متوقف تماماً. الوقف والهدف يُنفَّذان من الوسيط نفسه (bracket order).
-// وضعان: «ai» يقرر Claude من قائمة مرشّحين (الافتراضي عند وجود ANTHROPIC_API_KEY) · «rules» معادلة الدرجة فقط
+// وضعان: «ai» يقرر الذكاء الاصطناعي (DeepSeek أو Claude) من قائمة مرشّحين — الافتراضي عند وجود مفتاح · «rules» معادلة الدرجة فقط
 const broker = require('./_broker');
 const ai = require('./_ai');
 const { plan, esc } = require('./_market');
@@ -45,7 +45,7 @@ async function runCycle(list, { dry = false } = {}) {
   const c = cfg();
   if (!dry && !c.enabled) return { skipped: 'AUTOTRADE_ENABLED ليس true — التداول الآلي متوقف' };
   if (!broker.hasKeys()) return { skipped: 'ALPACA_KEY/ALPACA_SECRET غير مضبوطين' };
-  if (c.mode === 'ai' && !ai.hasKey()) return { skipped: 'AUTOTRADE_MODE=ai يتطلب ANTHROPIC_API_KEY' };
+  if (c.mode === 'ai' && !ai.hasKey()) return { skipped: `AUTOTRADE_MODE=ai يتطلب ${ai.keyName()}` };
 
   const account = await broker.getAccount();
   if (account.trading_blocked || account.account_blocked) {
@@ -84,7 +84,7 @@ async function runCycle(list, { dry = false } = {}) {
   const held = new Set([...positions.map(p => p.symbol), ...pendingSyms]);
   const budget = Math.max(0, Math.min(c.maxOpenPositions - exposure, c.maxDailyTrades - todayBuys.length - pendingSyms.size));
 
-  // اختيار المرشّحين: وضع القواعد يشتري أعلى الدرجات مباشرة؛ وضع الذكاء يعرض قائمة أوسع على Claude ليقرر
+  // اختيار المرشّحين: وضع القواعد يشتري أعلى الدرجات مباشرة؛ وضع الذكاء يعرض قائمة أوسع على النموذج ليقرر
   let picks = [], closes = [], marketView = '', aiDecisions = [];
   if (c.mode === 'rules') {
     picks = list.filter(s => s.score >= c.minScore && !held.has(s.sym)).slice(0, budget)
@@ -134,7 +134,7 @@ async function runCycle(list, { dry = false } = {}) {
     catch (e) { failed.push({ sym: cl.sym, error: 'إغلاق: ' + e.message }); }
   }
   return {
-    ok: true, dry, mode: c.mode, paper: broker.PAPER, marketView, executed, closed, failed, cancelled,
+    ok: true, dry, mode: c.mode, brain: ai.providerLabel(), paper: broker.PAPER, marketView, executed, closed, failed, cancelled,
     considered: aiDecisions.filter(d => !(d.action === 'buy' && executed.some(e => e.sym === d.sym)) && !(d.action === 'close' && closed.some(x => x.sym === d.sym))).slice(0, 8),
     dailyPL: +dailyPL.toFixed(2), budget
   };
@@ -145,7 +145,7 @@ function fmtCycle(r) {
   if (r.skipped) return `🤖 التداول الآلي: تخطّي هذه الدورة — ${esc(String(r.skipped))}`;
   if (r.stopped === 'daily_loss_limit') return `🛑 <b>توقف تلقائي</b>: خسارة اليوم ${r.dailyPL}$ تجاوزت الحد ${r.limit}$ — لن تُفتح صفقات جديدة اليوم.`;
   const mode = r.paper ? '(حساب تجريبي 🧪)' : '(حساب حقيقي 💰)';
-  const brain = r.mode === 'ai' ? '🧠 قرار Claude' : '📐 قواعد الدرجة';
+  const brain = r.mode === 'ai' ? `🧠 قرار ${r.brain || 'الذكاء الاصطناعي'}` : '📐 قواعد الدرجة';
   const lines = [`🤖 <b>${r.dry ? 'معاينة قرار الوكيل — بلا تنفيذ' : 'دورة التداول الآلي'}</b> ${mode} · ${brain}`];
   if (r.marketView) lines.push(`📊 ${esc(r.marketView)}`);
   if (r.executed.length) {
