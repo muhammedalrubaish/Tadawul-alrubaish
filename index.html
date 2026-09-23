@@ -556,7 +556,7 @@ footer{padding-bottom:max(18px,calc(env(safe-area-inset-bottom) + 14px))}
 
 /* ===== لوحة التحكم الموحدة (بوابة الداش بورد — أفقي فقط) ===== */
 #dash{display:none}
-body.dash{padding:0!important;overflow-x:hidden}
+body.dash{padding:0!important;overflow-x:clip} /* clip لا hidden: hidden يجعل body حاوية تمرير فيتعطل التثبيت sticky */
 body.dash>header,body.dash>main,body.dash>.bnav,body.dash>footer,body.dash>.apibar,body.dash>.tape,body.dash>.disc{display:none!important}
 body.dash #dash{display:grid;grid-template-columns:1fr 212px;min-height:100vh;min-height:100dvh}
 body.dash #dash>.tape{grid-column:1/-1;position:sticky;top:0;z-index:40}
@@ -694,31 +694,32 @@ body.dash .toast{bottom:22px}
 #rotateOverlay b{display:block;font-size:19px;margin:16px 0 6px} #rotateOverlay p{color:var(--dim);font-size:13px;line-height:1.9;max-width:320px}
 #rotateOverlay .abtn{margin-top:16px}
 @media (orientation:portrait){body.dash #rotateOverlay{display:grid}}
-/* شاشات أضيق (جوال أفقي / آيباد) */
+/* شاشات أضيق بلا دعم التصغير (احتياطي): تخطيط مضغوط. مع التصغير (.dash-fit) تُرسم اللوحة بعرض سطح المكتب ثم تُصغَّر */
 @media(max-width:1180px){
-  body.dash #dash{grid-template-columns:1fr 64px}
-  .dside{padding:10px 6px}
-  .dside .logo div,.dnav a span,.dnav .dsep,.dside .dlast{display:none}
-  .dnav a{justify-content:center;padding:9px 0} .dnav a svg{width:19px;height:19px}
-  .dhealth .dh-top small,.dhealth .dh-rows,.dhealth b.lbl{display:none}
-  .dhealth{padding:6px} .dgauge,.dgauge svg{width:46px;height:46px} .dgauge .gn{font-size:13px}
-  .c3{grid-column:span 6} .c4{grid-column:span 6} .c5{grid-column:span 6} .c7{grid-column:span 12} .c8{grid-column:span 12} .c9{grid-column:span 12}
-  .c6.kp{grid-column:span 12}
-  .dcard.r2{grid-row:auto}
-  .dhealth{order:5}
+  body.dash:not(.dash-fit) #dash{grid-template-columns:1fr 64px}
+  body:not(.dash-fit) .dside{padding:10px 6px}
+  body:not(.dash-fit) .dside .logo div,body:not(.dash-fit) .dnav a span,body:not(.dash-fit) .dnav .dsep,body:not(.dash-fit) .dside .dlast{display:none}
+  body:not(.dash-fit) .dnav a{justify-content:center;padding:9px 0} body:not(.dash-fit) .dnav a svg{width:19px;height:19px}
+  body:not(.dash-fit) .dhealth .dh-top small,body:not(.dash-fit) .dhealth .dh-rows,body:not(.dash-fit) .dhealth b.lbl{display:none}
+  body:not(.dash-fit) .dhealth{padding:6px;order:5} body:not(.dash-fit) .dgauge,body:not(.dash-fit) .dgauge svg{width:46px;height:46px} body:not(.dash-fit) .dgauge .gn{font-size:13px}
+  body:not(.dash-fit) .c3{grid-column:span 6} body:not(.dash-fit) .c4{grid-column:span 6} body:not(.dash-fit) .c5{grid-column:span 6} body:not(.dash-fit) .c7{grid-column:span 12} body:not(.dash-fit) .c8{grid-column:span 12} body:not(.dash-fit) .c9{grid-column:span 12}
+  body:not(.dash-fit) .c6.kp{grid-column:span 12}
+  body:not(.dash-fit) .dcard.r2{grid-row:auto}
 }
 @media(max-width:1000px){
-  body.dash .apibar .mtxt{display:none}
-  body.dash .apibar{flex-wrap:nowrap;gap:8px}
-  body.dash .apibar>div:first-of-type{min-width:0!important;flex:0 1 auto!important}
-  body.dash #srcStatus{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:34vw}
-  body.dash .mtabs{margin-inline-start:auto}
+  body.dash:not(.dash-fit) .apibar .mtxt{display:none}
+  body.dash:not(.dash-fit) .apibar{flex-wrap:nowrap;gap:8px}
+  body.dash:not(.dash-fit) .apibar>div:first-of-type{min-width:0!important;flex:0 1 auto!important}
+  body.dash:not(.dash-fit) #srcStatus{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:34vw}
+  body.dash:not(.dash-fit) .mtabs{margin-inline-start:auto}
 }
 @media(max-width:760px){
-  .c3,.c4,.c5,.c6{grid-column:span 12}
-  .dmain{padding:10px 10px 24px}
-  .dtabs{display:none}
+  body:not(.dash-fit) .c3,body:not(.dash-fit) .c4,body:not(.dash-fit) .c5,body:not(.dash-fit) .c6{grid-column:span 12}
+  body:not(.dash-fit) .dmain{padding:10px 10px 24px}
+  body:not(.dash-fit) .dtabs{display:none}
 }
+/* التصغير: العناصر الثابتة خارج اللوحة (المساعد، النافذة، التنبيه) تبقى بحجمها الطبيعي */
+body.dash-fit .disc{font-size:12px}
 </style>
 </head>
 <body>
@@ -3692,6 +3693,7 @@ function enterDash(){
   const a=authGet()||{},nm=a.name||'مستخدم';
   document.getElementById('dUserName').textContent=nm;document.getElementById('dAv').textContent=nm.trim().charAt(0)||'م';
   window.scrollTo(0,0);
+  dashFit();
   renderAllDash();renderNews();
   if(typeof loadAgentTrades==='function')loadAgentTrades();
   // المحاكي يعمل تلقائياً أول مرة عندما تظهر بطاقته
@@ -3913,7 +3915,23 @@ function dashPerfDraw(hoverIdx){
 // تغيّر مدخلات حاسبة النمو أو الإعدادات يعيد رسم الأهداف والخطة فوراً
 ['gCap','gDep','gRet','gGoal'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{if(DASH)renderDash();}));
 document.getElementById('setSave').addEventListener('click',()=>{if(DASH)setTimeout(renderDash,0);});
-window.addEventListener('resize',()=>{if(DASH)renderDash();});
+/* الجوال والآيباد الأفقي: تُرسم اللوحة بعرض سطح المكتب (1200px) ثم تُصغَّر بنسبة عرض الشاشة كي تظهر كما على الحاسوب */
+const DASH_DESIGN_W=1200;
+const ZOOM_OK=(()=>{try{return CSS.supports('zoom','0.5');}catch(e){return false;}})();
+function dashFit(){
+  const el=document.getElementById('dash');
+  const W=window.innerWidth;
+  if(DASH&&ZOOM_OK&&W<DASH_DESIGN_W){
+    const z=W/DASH_DESIGN_W;
+    document.body.classList.add('dash-fit');
+    el.style.zoom=z.toFixed(4);
+    // ارتفاع الشريط الجانبي بالبكسل الفعلي (وحدات vh تختلف معاملتها تحت zoom بين المتصفحات)
+    document.querySelector('.dside').style.height=Math.round(window.innerHeight/z-40)+'px';
+  }else{document.body.classList.remove('dash-fit');el.style.zoom='';document.querySelector('.dside').style.height='';}
+}
+let dashRszT=0;
+window.addEventListener('resize',()=>{if(!DASH)return;dashFit();clearTimeout(dashRszT);dashRszT=setTimeout(()=>{renderDash();if(SIM.series)simDraw(SIM.prog);if(LAB.bars)labDraw();renderJournal();},120);});
+window.addEventListener('orientationchange',()=>{if(DASH)setTimeout(dashFit,60);});
 // التنقل داخل اللوحة
 document.querySelectorAll('#dnav a,.dtabs a').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();dashScrollTo(a.dataset.t);}));
 document.getElementById('dSearchForm').addEventListener('submit',e=>{
