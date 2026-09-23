@@ -32,14 +32,34 @@ const SYSTEM = `أنت «مساعد رصد» — وكيل مساعدة على ق
 - لا تَعِد بأرباح ولا تستخدم لغة الجزم. اختم أي رأي بجملة قصيرة أن هذا ليس توصية استثمارية وأن القرار قرار المستخدم.
 - إن أرفق المستخدم صفقاته المفتوحة فحلّلها مقابل الأسعار الحية: هل اقترب الوقف أو الهدف؟ وهل حجم المركز معقول؟`;
 
+// توحيد الكتابة العربية للمطابقة: حذف التشكيل والتطويل، توحيد الهمزات والتاء المربوطة والألف المقصورة، وحذف «ال» في أول الكلمة
+const normAr = t => String(t || '')
+  .replace(/[\u064B-\u065F\u0670\u0640]/g, '')
+  .replace(/[أإآٱ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/ؤ/g, 'و').replace(/ئ/g, 'ي')
+  .toLowerCase();
+const words = t => normAr(t).split(/[^\p{L}\p{N}]+/u).filter(Boolean).map(w => w.replace(/^ال(?=..)/, ''));
+// كلمات عامة لا تميّز شركة بعينها (تتكرر في أسماء كثيرة أو في صياغة الأسئلة)
+const STOP = new Set(['سعوديه', 'سعودي', 'بنك', 'مصرف', 'شركه', 'عربيه', 'عربي', 'وطنيه', 'قابضه', 'اسمنت', 'تامين', 'للتامين', 'سوق', 'اسواق', 'سهم', 'اسهم', 'صناعه', 'صناعيه', 'مياه', 'خدمات', 'وقت']);
+// هل ذُكر السهم في السؤال؟ برمزه كلمةً مستقلة (AAPL · aapl · 2222) أو بأي كلمة مميزة من اسمه (ارامكو · الراجحي)
+function mentioned(s, qWords, qUpper) {
+  const sym = String(s.sym).toUpperCase().replace(/[.\-]/g, '\\$&');
+  // الرموز الأمريكية من حرف أو حرفين (C, F, V, MA) تُقبل فقط بحروف كبيرة كي لا تطابق كلمات إنجليزية عادية
+  const re = new RegExp(`(^|[^A-Z0-9])${sym}($|[^A-Z0-9])`, s.sym.length <= 2 ? '' : 'i');
+  if (re.test(s.sym.length <= 2 ? qUpper.raw : qUpper.up)) return true;
+  const nw = words(s.name);
+  if (nw.some(w => w.length >= 3 && !STOP.has(w) && qWords.has(w))) return true;
+  // الاسم كاملاً كعبارة: لأسماء كلماتها عامة أو قصيرة (البنك العربي · إس تي سي · آي بي إم)
+  return nw.length > 0 && qUpper.phrase.includes(' ' + nw.join(' ') + ' ');
+}
+
 // اختيار مقتضب من اللقطة: أفضل 20 بالدرجة + أقوى 10 حركةً + أي سهم ذُكر في السؤال
 function pickContext(list, question) {
   const q = String(question || '');
+  const qWords = new Set(words(q));
+  const qUpper = { raw: q, up: q.toUpperCase(), phrase: ' ' + words(q).join(' ') + ' ' };
   const picked = new Map();
   const add = s => { if (s && !picked.has(s.sym)) picked.set(s.sym, s); };
-  list.forEach(s => {
-    if (q.includes(s.sym) || (s.name && q.includes(s.name))) add(s);
-  });
+  list.forEach(s => { if (mentioned(s, qWords, qUpper)) add(s); });
   list.slice(0, 20).forEach(add);
   [...list].sort((a, b) => Math.abs(b.chg) - Math.abs(a.chg)).slice(0, 10).forEach(add);
   return [...picked.values()];
@@ -242,4 +262,4 @@ async function decide({ candidates, positions, account, limits, canSell }) {
   return sanitizeDecisions(out);
 }
 
-module.exports = { ask, decide, hasKey, provider, providerLabel, modelName, keyName, sanitizeDecisions };
+module.exports = { ask, decide, hasKey, provider, providerLabel, modelName, keyName, sanitizeDecisions, pickContext };
