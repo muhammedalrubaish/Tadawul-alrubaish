@@ -22,15 +22,53 @@ const modelName = () => isDeepSeek() ? (env('DEEPSEEK_MODEL') || 'deepseek-chat'
 const providerLabel = () => isDeepSeek() ? 'DeepSeek' : 'Claude';
 const noKey = () => Object.assign(new Error(`${keyName()} غير مضبوط في إعدادات Vercel`), { code: 'NO_KEY' });
 
-const SYSTEM = `أنت «مساعد رصد» — وكيل مساعدة على قرار التداول داخل تطبيق رصد لمتداول فرد في السوقين السعودي (تداول) والأمريكي.
+const SYSTEM = `أنت «مساعد رصد» — صاحبك الخبير في التداول داخل تطبيق رصد، تساعد متداولاً فرداً في السوقين السعودي (تداول) والأمريكي.
+
+أسلوبك:
+- تكلّم بلهجة سعودية بيضاء مهذبة وطبيعية (وش، أبغى، زين، تمام، خلّك، لا تطارد…) بدون مبالغة ولا تصنّع، وبدون فصحى جافة.
+- مختصر جداً: من 3 إلى 6 أسطر قصيرة كحد أقصى. كل سطر فكرة واحدة تبدأ بأيقونة مناسبة (📊 💰 🛑 🎯 ⚠️ ✅ 📈 📉 💡). بلا Markdown ولا جداول ولا عناوين.
+- لو السؤال بسيط جاوب بسطر أو سطرين.
 
 قواعدك الصارمة:
-- أجب بالعربية الفصحى المبسطة وباختصار عملي. بلا Markdown ولا جداول — نص عادي وأسطر قصيرة، ويمكنك استخدام الرموز التعبيرية باعتدال.
-- اعتمد حصراً على بيانات السوق الحية المرفقة في الرسالة. لا تختلق سعراً أو رقماً أبداً؛ إن لم يكن السهم في البيانات فقل ذلك صراحة واقترح البحث عنه في التطبيق.
-- كن صارماً في إدارة المخاطر: اذكر دائماً وقف الخسارة قبل الهدف، وحذّر من المخاطرة بأكثر من 1-2٪ من المحفظة في الصفقة الواحدة، وانصح بعدم مطاردة الأسهم بعد ارتفاع حاد.
+- اعتمد حصراً على بيانات السوق الحية المرفقة. لا تختلق سعراً أو رقماً أبداً؛ لو السهم مو في البيانات قل ذلك بوضوح واقترح كتابة اسمه أو رمزه.
+- إدارة المخاطر أولاً: اذكر وقف الخسارة قبل الهدف، وحذّر من المخاطرة بأكثر من 1-2٪ من المحفظة في الصفقة الواحدة، ولا تنصح بمطاردة سهم بعد ارتفاع حاد.
 - درجة الفرصة (0-100) المرفقة تجمع الزخم والسيولة وموقع RSI: ‏72+ إشارة شراء، 50-71 مراقبة، أقل من 50 تجنُّب.
-- لا تَعِد بأرباح ولا تستخدم لغة الجزم. اختم أي رأي بجملة قصيرة أن هذا ليس توصية استثمارية وأن القرار قرار المستخدم.
-- إن أرفق المستخدم صفقاته المفتوحة فحلّلها مقابل الأسعار الحية: هل اقترب الوقف أو الهدف؟ وهل حجم المركز معقول؟`;
+- لا تَعِد بأرباح ولا تستخدم لغة الجزم. اختم بسطر قصير جداً: «⚖️ مو توصية استثمارية — القرار قرارك».
+- لو أرفق المستخدم صفقاته المفتوحة فحلّلها مقابل الأسعار الحية: قرب الوقف أو الهدف، وحجم المركز.
+
+الردود السريعة: مع كل إجابة اقترح 2 أو 3 ردود سريعة قصيرة (5 كلمات كحد أقصى لكل واحد) تكون متابعة طبيعية لما قلته، مكتوبة بصيغة ما يرسله المستخدم، مثل: «وش الوقف المناسب؟» · «قارنه بسابك» · «أفضل فرصة اليوم؟». لا تكرر سؤال المستخدم نفسه.`;
+
+// بنية رد المساعد: نص الإجابة + ردود سريعة يضغطها المستخدم
+const ANSWER_SCHEMA = {
+  type: 'object',
+  properties: {
+    answer: { type: 'string', description: 'نص الإجابة كما سيُعرض للمستخدم (أسطر قصيرة بأيقونات)' },
+    quick_replies: { type: 'array', items: { type: 'string' }, description: '2 إلى 3 ردود سريعة قصيرة' }
+  },
+  required: ['answer', 'quick_replies'],
+  additionalProperties: false
+};
+const ANSWER_JSON_FORMAT = `
+
+أخرج الجواب ككائن JSON واحد فقط بلا أي نص قبله أو بعده، بهذه البنية حرفياً:
+{"answer": "نص الإجابة بأسطر قصيرة", "quick_replies": ["رد سريع 1", "رد سريع 2"]}`;
+
+// تنقية الردود السريعة: نصوص قصيرة، بلا تكرار، ثلاثة كحد أقصى
+function sanitizeReplies(arr) {
+  const seen = new Set();
+  return (Array.isArray(arr) ? arr : [])
+    .map(r => String(r == null ? '' : r).replace(/\s+/g, ' ').trim().slice(0, 40))
+    .filter(r => r && !seen.has(r) && seen.add(r))
+    .slice(0, 3);
+}
+// قراءة رد المساعد: JSON بالبنية المطلوبة، أو نص خام عند تعذّر القراءة (بلا ردود سريعة)
+function parseAnswer(text) {
+  try {
+    const o = JSON.parse(text);
+    if (o && typeof o.answer === 'string' && o.answer.trim()) return { text: o.answer.trim(), replies: sanitizeReplies(o.quick_replies) };
+  } catch (e) { /* ليس JSON */ }
+  return { text: String(text || '').trim(), replies: [] };
+}
 
 // توحيد الكتابة العربية للمطابقة: حذف التشكيل والتطويل، توحيد الهمزات والتاء المربوطة والألف المقصورة، وحذف «ال» في أول الكلمة
 const normAr = t => String(t || '')
@@ -141,7 +179,7 @@ async function deepseekText({ system, messages, maxTokens, json, temperature }) 
   return out;
 }
 
-// سؤال المساعد: يعيد نص الإجابة
+// سؤال المساعد: يعيد {text, replies} — نص الإجابة وردوداً سريعة مقترحة
 async function ask({ question, history = [], portfolio = [], snapshots }) {
   if (!hasKey()) throw noKey();
 
@@ -161,9 +199,10 @@ async function ask({ question, history = [], portfolio = [], snapshots }) {
     .map(h => ({ role: h.role, content: h.content.slice(0, 2000) }));
   msgs.push({ role: 'user', content: userMsg });
 
-  return isDeepSeek()
-    ? deepseekText({ system: SYSTEM, messages: msgs, maxTokens: 1400, temperature: 1.0 })
-    : claudeText({ system: SYSTEM, messages: msgs, maxTokens: 1400, effort: EFFORT });
+  const raw = isDeepSeek()
+    ? await deepseekText({ system: SYSTEM + ANSWER_JSON_FORMAT, messages: msgs, maxTokens: 1000, json: true, temperature: 1.0 })
+    : await claudeText({ system: SYSTEM, messages: msgs, maxTokens: 1000, effort: EFFORT, schema: ANSWER_SCHEMA });
+  return parseAnswer(raw);
 }
 
 /* ========= قرارات التداول الآلي (مخرجات مهيكلة) ========= */
@@ -262,4 +301,4 @@ async function decide({ candidates, positions, account, limits, canSell }) {
   return sanitizeDecisions(out);
 }
 
-module.exports = { ask, decide, hasKey, provider, providerLabel, modelName, keyName, sanitizeDecisions, pickContext };
+module.exports = { ask, decide, hasKey, provider, providerLabel, modelName, keyName, sanitizeDecisions, pickContext, parseAnswer };

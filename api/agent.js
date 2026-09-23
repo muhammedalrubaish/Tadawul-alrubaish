@@ -56,7 +56,7 @@ module.exports = async (req, res) => {
           question: `هذه أفضل فرص ${market === 'sa' ? 'السوق السعودي' : 'السوق الأمريكي'} اليوم حسب رادار رصد: ${top}. اكتب تعليقاً صباحياً صارماً في 3 جمل كحد أقصى: قراءة عامة للسوق من هذه الأرقام + تحذير مخاطرة واحد محدد.`,
           snapshots: { [market]: list }
         });
-        msgText += `\n\n🧠 <b>قراءة المساعد:</b>\n${esc(comment)}`;
+        msgText += `\n\n🧠 <b>قراءة المساعد:</b>\n${esc(comment.text)}`;
       } catch (_) {}
     }
 

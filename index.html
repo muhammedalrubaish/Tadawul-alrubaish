@@ -102,6 +102,10 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 .aim.b{align-self:flex-start;background:#101215;border:1px solid var(--line)}
 .aim.err{border-color:rgba(255,107,127,.4);color:var(--down)}
 .aim.typing{color:var(--dim)}
+/* ردود سريعة تحت رد المساعد */
+.aiq{display:flex;flex-wrap:wrap;gap:6px;align-self:flex-start;max-width:92%}
+.aiq button{background:rgba(240,192,92,.1);border:1px solid rgba(240,192,92,.35);color:var(--sand);border-radius:99px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s}
+.aiq button:hover{background:rgba(240,192,92,.22)} .aiq button:active{transform:scale(.96)}
 .airow{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line)}
 .airow input{flex:1;min-width:0;background:#0A0B0D;border:1px solid var(--line);border-radius:12px;padding:11px 13px;color:var(--text);font-size:13.5px;font-family:inherit}
 .airow button{background:var(--grad-gold);color:#140D00;border:none;border-radius:12px;padding:0 18px;font-weight:800;cursor:pointer;font-family:inherit}
@@ -2755,10 +2759,18 @@ function aiBubble(cls,txt){
   const d=document.createElement('div');d.className='aim '+cls;d.textContent=txt;
   aiMsgs.appendChild(d);aiMsgs.scrollTop=aiMsgs.scrollHeight;return d;
 }
+// أزرار الردود السريعة تحت آخر رد فقط — الضغط يرسل النص كسؤال
+function aiQuick(replies){
+  aiMsgs.querySelectorAll('.aiq').forEach(e=>e.remove());
+  if(!Array.isArray(replies)||!replies.length)return;
+  const w=document.createElement('div');w.className='aiq';
+  replies.slice(0,3).forEach(r=>{const b=document.createElement('button');b.type='button';b.textContent=r;b.addEventListener('click',()=>{aiIn.value=r;aiSend();});w.appendChild(b);});
+  aiMsgs.appendChild(w);aiMsgs.scrollTop=aiMsgs.scrollHeight;
+}
 document.getElementById('aiFab').addEventListener('click',()=>{
   aiPanel.classList.toggle('open');
   if(aiPanel.classList.contains('open')){
-    if(!aiMsgs.childElementCount)aiBubble('b','أهلاً! أنا مساعد رصد الذكي — أجيب بالأسعار الحية عن أي سهم في السوقين، وأراجع صفقاتك المفتوحة.\nجرّب: «حلّل سهم أرامكو» أو «ما رأيك بمحفظتي؟»');
+    if(!aiMsgs.childElementCount){aiBubble('b','هلا والله 👋 أنا مساعد رصد — أجاوبك بالأسعار الحية للسوقين وأراجع صفقاتك.\n💡 اختر رداً سريعاً أو اكتب سؤالك');aiQuick(['وش أفضل فرصة اليوم؟','حلل سهم أرامكو','راجع محفظتي']);}
     aiIn.focus();
   }
 });
@@ -2766,8 +2778,8 @@ document.getElementById('aiClose').addEventListener('click',()=>aiPanel.classLis
 const aiPost=payload=>fetch('/api/ask',{method:'POST',headers:{'Content-Type':'application/json','x-rasad-pass':localStorage.getItem('rasad_ai_pass')||''},body:JSON.stringify(payload)});
 async function aiSend(){
   const q=aiIn.value.trim();if(!q||AI_BUSY)return;
-  aiIn.value='';aiBubble('u',q);
-  const typing=aiBubble('b typing','⏳ يحلّل بالأسعار الحية…');AI_BUSY=true;
+  aiIn.value='';aiQuick([]);aiBubble('u',q);
+  const typing=aiBubble('b typing','⏳ لحظة، أشوف الأسعار الحية…');AI_BUSY=true;
   const payload={q,history:AIH.slice(-6),portfolio:trades.filter(t=>!t.closePrice).map(t=>({sym:t.sym,qty:t.qty,entry:t.entry,sl:t.sl,tp:t.tp}))};
   try{
     let r=await aiPost(payload);
@@ -2778,7 +2790,7 @@ async function aiSend(){
     const d=await r.json().catch(()=>({}));
     typing.remove();
     if(!r.ok){aiBubble('b err',d.error||('تعذّر الرد — خطأ '+r.status));return;}
-    aiBubble('b',d.answer);
+    aiBubble('b',d.answer);aiQuick(d.replies);
     AIH.push({role:'user',content:q},{role:'assistant',content:d.answer});
   }catch(e){typing.remove();aiBubble('b err','تعذّر الاتصال: '+(e.message||e));}
   finally{AI_BUSY=false;}
