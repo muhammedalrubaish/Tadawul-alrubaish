@@ -706,6 +706,17 @@ footer{padding-bottom:max(18px,calc(env(safe-area-inset-bottom) + 14px))}
         <div id="jrows"><div class="empty" id="jempty"><b>لا توجد صفقات بعد</b>نفّذ صفقتك في تطبيق الوسيط، ثم سجّلها هنا لمتابعة أدائها لحظياً.</div></div>
       </div>
     </div>
+    <!-- صفقات الوكيل: من حساب الوسيط Alpaca مباشرة -->
+    <div class="card" id="agentTradesCard" style="margin-top:16px">
+      <div style="padding:14px 16px;border-bottom:1px solid var(--line);background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <div>
+          <b style="font-size:15px">🤖 صفقات الوكيل</b>
+          <div style="font-size:11.5px;color:var(--dim);margin-top:3px" id="agentTradesSub">من حساب الوسيط Alpaca مباشرة — ما اشتراه الذكاء الاصطناعي، وأين وقفه وهدفه، وما أُغلق بربح أو خسارة</div>
+        </div>
+        <button class="quick-log" id="agentTradesRefresh" style="width:auto;padding:6px 14px;font-size:12px">↻ تحديث</button>
+      </div>
+      <div id="agentTradesBody"><div class="empty">جارٍ جلب صفقات الوكيل…</div></div>
+    </div>
     <div class="card" id="distCard" style="margin-top:16px">
       <div style="padding:14px 16px;border-bottom:1px solid var(--line);background:rgba(0,0,0,.4)">
         <b style="font-size:15px">🧭 توزيع المحفظة على القطاعات</b>
@@ -2409,6 +2420,7 @@ function switchView(v){
   renderAll();
   if(v==='sim'){SIM.series?simDraw(SIM.prog):runSim();} // تشغيل تلقائي أول مرة كي لا تُفتح الصفحة فارغة
   if(v==='lab'&&LAB.bars)labDraw();
+  if(v==='port'&&typeof loadAgentTrades==='function')loadAgentTrades();
 }
 document.querySelectorAll('.bnav button').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.v)));
 
@@ -2773,6 +2785,83 @@ async function aiSend(){
 }
 document.getElementById('aiSendBtn').addEventListener('click',aiSend);
 aiIn.addEventListener('keydown',e=>{if(e.key==='Enter')aiSend();});
+
+/* ========= صفقات الوكيل (من حساب Alpaca) ========= */
+const AGT={data:null,busy:false,at:0};
+const fmtUsd=v=>(v>=0?'+':'−')+fmt(Math.abs(v))+'$';
+const clr=v=>v>=0?'var(--up)':'var(--down)';
+const dtShort=iso=>{if(!iso)return'—';const d=new Date(iso);return isNaN(d)?'—':d.toLocaleDateString('ar',{day:'numeric',month:'short'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});};
+async function loadAgentTrades(force){
+  const body=document.getElementById('agentTradesBody');
+  if(!body||AGT.busy)return;
+  if(!force&&Date.now()-AGT.at<30000){renderAgentTrades();return;}
+  AGT.busy=true;
+  try{
+    const hdr=()=>({'x-rasad-pass':localStorage.getItem('rasad_ai_pass')||''});
+    let r=await fetch('/api/trades',{headers:hdr()});
+    if(r.status===401){
+      const p=prompt('صفقات الوكيل محمية برمز AI_PASS. أدخل الرمز:');
+      if(p!=null){localStorage.setItem('rasad_ai_pass',p.trim());r=await fetch('/api/trades',{headers:hdr()});}
+    }
+    const d=await r.json().catch(()=>({}));
+    AGT.data=r.ok?d:{httpError:r.status,...d};AGT.at=Date.now();
+  }catch(e){AGT.data={httpError:0,error:String(e.message||e)};}
+  finally{AGT.busy=false;renderAgentTrades();}
+}
+function renderAgentTrades(){
+  const body=document.getElementById('agentTradesBody'),sub=document.getElementById('agentTradesSub');
+  const d=AGT.data;if(!body||!d)return;
+  const note=(ic,title,txt)=>`<div class="empty"><b>${ic} ${title}</b>${txt}</div>`;
+  if(d.needPass){body.innerHTML=note('🔒','بيانات الحساب محمية','أضف <b>AI_PASS</b> في إعدادات Vercel وأعد النشر — الرمز نفسه يحمي المساعد الذكي وهذه اللوحة.');return;}
+  if(d.httpError===401){body.innerHTML=note('🔒','الرمز غير صحيح','اضغط «تحديث» وأدخل رمز AI_PASS الصحيح.');return;}
+  if(d.configured===false){body.innerHTML=note('🔌','الوسيط غير مربوط بعد','أضف <b>ALPACA_KEY</b> و<b>ALPACA_SECRET</b> في إعدادات Vercel — الخطوات الكاملة في بطاقة «وكيل رصد» بالرئيسية.');return;}
+  if(d.error){body.innerHTML=note('⚠️','تعذّر الاتصال بالوسيط',esc(d.error));return;}
+  const a=d.account,st=d.stats;
+  if(sub)sub.innerHTML=`${d.paper?'حساب تجريبي 🧪 (مال وهمي)':'<span style="color:var(--down)">حساب حقيقي 💰</span>'} · التنفيذ ${d.enabled?'<span style="color:var(--up)">مفعّل ✓</span>':'<span style="color:var(--sand)">متوقف</span>'} · القرار ${d.mode==='ai'?'🧠 '+esc(d.brain):'📐 قواعد الدرجة'} · آخر تحديث ${new Date(AGT.at).toLocaleTimeString('en-GB').slice(0,5)}`;
+  let h=`<div class="jstats">
+    <div class="jst"><div class="l">حقوق الملكية</div><div class="v mono">${fmt(a.equity)}$</div></div>
+    <div class="jst"><div class="l">ربح/خسارة اليوم</div><div class="v mono" style="color:${clr(a.dailyPL)}">${fmtUsd(a.dailyPL)}</div></div>
+    <div class="jst"><div class="l">غير محقق (مفتوح)</div><div class="v mono" style="color:${clr(st.unrealized)}">${fmtUsd(st.unrealized)}</div></div>
+    <div class="jst"><div class="l">محقق (مغلق)</div><div class="v mono" style="color:${clr(st.realized)}">${fmtUsd(st.realized)}</div><div style="font-size:11px;color:var(--dim);margin-top:2px">${st.closed} صفقة · ${st.wins} رابحة / ${st.losses} خاسرة</div></div>
+    <div class="jst"><div class="l">نقد متاح</div><div class="v mono">${fmt(a.cash)}$</div></div>
+  </div>`;
+  if(a.blocked)h+=`<div class="risk-note" style="margin:0 16px 12px"><b>🛑 الحساب موقوف لدى الوسيط</b>لن تُفتح صفقات جديدة — راجع حسابك في Alpaca.</div>`;
+  // المراكز المفتوحة مع موقع السعر بين الوقف والهدف
+  h+=`<div style="padding:12px 16px 4px;font-weight:800;font-size:13.5px">📌 مراكز مفتوحة <span style="color:var(--dim);font-weight:400">(${d.positions.length})</span></div>`;
+  if(!d.positions.length)h+=`<div class="empty" style="padding:14px">لا مراكز مفتوحة الآن — الوكيل يقرر قبل افتتاح وول ستريت يومياً</div>`;
+  d.positions.forEach(p=>{
+    const span=p.sl&&p.tp?p.tp-p.sl:0;
+    const pos=span>0?Math.max(0,Math.min(100,(p.price-p.sl)/span*100)):null;
+    h+=`<div class="jrow">
+      <div class="jrow-left"><div class="jrow-icon open-t">🤖</div><div class="jrow-info">
+        <div class="jrow-name">${esc(p.name)} <span class="mono" style="font-size:11px;color:var(--dim)">${esc(p.sym)}</span> <span class="tag p" style="margin-inline-start:6px">مفتوحة · حالي ${fmt(p.price)}</span></div>
+        <div class="jrow-detail">دخول ${fmt(p.entry)} · ${p.qty} سهم · قيمة ${fmt(p.value)}$${p.sl?` · <span style="color:var(--down)">وقف ${fmt(p.sl)}</span>`:' · <span style="color:var(--down)">⚠ بلا وقف لدى الوسيط</span>'}${p.tp?` · <span style="color:var(--up)">هدف ${fmt(p.tp)}</span>`:''}</div>
+        ${pos!=null?`<div style="height:6px;background:rgba(255,107,127,.25);border-radius:99px;margin-top:7px;position:relative;max-width:260px"><i style="position:absolute;inset:0;width:${pos.toFixed(0)}%;background:linear-gradient(90deg,var(--down),var(--up));border-radius:99px"></i></div><div style="font-size:10.5px;color:var(--dim);margin-top:3px">موقع السعر بين الوقف والهدف: ${pos.toFixed(0)}٪</div>`:''}
+      </div></div>
+      <div class="jrow-right"><span class="jrow-pnl mono" style="color:${clr(p.pl)}">${fmtUsd(p.pl)}</span><span class="jrow-pnlp mono" style="color:${clr(p.plPct)}">${p.plPct>=0?'+':''}${fmt(p.plPct)}%</span></div>
+    </div>`;
+  });
+  if(d.pending.length){
+    h+=`<div style="padding:12px 16px 4px;font-weight:800;font-size:13.5px">⏳ أوامر شراء معلّقة <span style="color:var(--dim);font-weight:400">(${d.pending.length})</span></div>`;
+    d.pending.forEach(o=>{h+=`<div class="jrow"><div class="jrow-left"><div class="jrow-icon open-t">⏳</div><div class="jrow-info"><div class="jrow-name">${esc(o.name)} <span class="mono" style="font-size:11px;color:var(--dim)">${esc(o.sym)}</span></div><div class="jrow-detail">${o.qty} سهم${o.limit?` · بحد ${fmt(o.limit)}$`:' · بسعر السوق'} · أُرسل ${dtShort(o.submittedAt)} · يُلغى تلقائياً إن لم يُنفَّذ خلال الدورة التالية</div></div></div></div>`;});
+  }
+  h+=`<div style="padding:12px 16px 4px;font-weight:800;font-size:13.5px">✅ صفقات مغلقة <span style="color:var(--dim);font-weight:400">(آخر ${d.closed.length})</span></div>`;
+  if(!d.closed.length)h+=`<div class="empty" style="padding:14px">لا صفقات مغلقة بعد</div>`;
+  d.closed.forEach(t=>{
+    h+=`<div class="jrow">
+      <div class="jrow-left"><div class="jrow-icon cl">${t.pl>=0?'✅':'❌'}</div><div class="jrow-info">
+        <div class="jrow-name">${esc(t.name)} <span class="mono" style="font-size:11px;color:var(--dim)">${esc(t.sym)}</span> <span class="tag u" style="margin-inline-start:6px">مغلقة</span></div>
+        <div class="jrow-detail">دخول ${fmt(t.entry)} → خروج ${fmt(t.exit)} · ${t.qty} سهم · ${dtShort(t.entryAt)} ← ${dtShort(t.exitAt)}</div>
+      </div></div>
+      <div class="jrow-right"><span class="jrow-pnl mono" style="color:${clr(t.pl)}">${fmtUsd(t.pl)}</span><span class="jrow-pnlp mono" style="color:${clr(t.plPct)}">${t.plPct>=0?'+':''}${fmt(t.plPct)}%</span></div>
+    </div>`;
+  });
+  h+=`<div class="calc-note" style="margin:0;padding:10px 16px;border-top:1px dashed var(--line)">الوقف والهدف يُنفَّذهما الوسيط تلقائياً. للإيقاف الطارئ أرسل «أوقف الكل» لبوت تيليجرام. الحدود: صفقة ≤${d.limits.maxPositionUsd}$ · ${d.limits.maxOpenPositions} مفتوحة · ${d.limits.maxDailyTrades}/يوم · وقف يومي ${d.limits.dailyLossLimitUsd}$.</div>`;
+  body.innerHTML=h;
+}
+document.getElementById('agentTradesRefresh').addEventListener('click',()=>loadAgentTrades(true));
+// تحديث تلقائي كل دقيقة ما دامت صفحة «محفظتي» ظاهرة
+setInterval(()=>{if(activeView()==='port')loadAgentTrades();},60000);
 
 /* بطاقة حالة الوكيل وخطوات الربط (في الرئيسية) */
 async function renderAgentCard(){
