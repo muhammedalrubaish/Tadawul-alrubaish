@@ -89,21 +89,32 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 .stale{font-size:11px;opacity:.75;cursor:help} /* سهم لم يصله سعر حقيقي بعد رغم اتصال السوق */
 /* ===== وكيل رصد: زر ولوحة المحادثة الذكية ===== */
 #aiFab{position:fixed;bottom:calc(84px + env(safe-area-inset-bottom,0px));inset-inline-end:16px;z-index:70;width:54px;height:54px;border-radius:50%;background:var(--grad-gold);color:#140D00;font-size:23px;border:none;box-shadow:0 8px 22px rgba(0,0,0,.55);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit}
+#aiFab{transition:transform .35s cubic-bezier(.2,.9,.25,1.2),box-shadow .3s}
 #aiFab:active{transform:scale(.94)}
-#aiPanel{position:fixed;bottom:calc(84px + env(safe-area-inset-bottom,0px));inset-inline-end:12px;z-index:71;width:min(410px,calc(100vw - 24px));height:min(560px,72vh);background:var(--panel);border:1px solid var(--line);border-radius:18px;display:none;flex-direction:column;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.6)}
-#aiPanel.open{display:flex}
+#aiFab.on{transform:rotate(90deg);box-shadow:0 8px 26px rgba(240,192,92,.35)}
+/* لوحة المحادثة العائمة: تظهر بانزلاق وتلاشٍ ناعم من جهة الزر بدل الظهور المفاجئ */
+#aiPanel{position:fixed;bottom:calc(84px + env(safe-area-inset-bottom,0px));inset-inline-end:12px;z-index:71;width:min(410px,calc(100vw - 24px));height:min(560px,72vh);background:var(--panel);border:1px solid var(--line);border-radius:18px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.6);
+  opacity:0;visibility:hidden;pointer-events:none;transform:translateY(22px) scale(.94);transform-origin:bottom left;
+  transition:opacity .24s ease,transform .38s cubic-bezier(.2,.9,.25,1.12),visibility 0s linear .38s}
+#aiPanel.open{opacity:1;visibility:visible;pointer-events:auto;transform:none;transition:opacity .24s ease,transform .38s cubic-bezier(.2,.9,.25,1.12),visibility 0s}
+/* خلفية معتمة خلف اللوحة — لمسها يغلق المحادثة */
+#aiBackdrop{position:fixed;inset:0;z-index:69;background:rgba(0,0,0,.5);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);opacity:0;visibility:hidden;transition:opacity .3s ease,visibility 0s linear .3s}
+#aiBackdrop.on{opacity:1;visibility:visible;transition:opacity .3s ease,visibility 0s}
+/* ظهور الرسائل والردود السريعة بتلاشٍ خفيف */
+@keyframes aiPop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){#aiPanel,#aiBackdrop,#aiFab{transition:none}.aim,.aiq{animation:none}}
 .aihead{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);background:rgba(240,192,92,.06)}
 .aihead b{font-size:14.5px;white-space:nowrap}
 .aihead small{color:var(--dim);font-size:10.5px;line-height:1.5}
 .aihead button{margin-inline-start:auto;background:none;border:none;color:var(--dim);font-size:19px;cursor:pointer}
 #aiMsgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
-.aim{max-width:88%;padding:10px 13px;border-radius:14px;font-size:13.5px;line-height:1.95;white-space:pre-wrap;word-break:break-word}
+.aim{max-width:88%;padding:10px 13px;border-radius:14px;font-size:13.5px;line-height:1.95;white-space:pre-wrap;word-break:break-word;animation:aiPop .3s ease both}
 .aim.u{align-self:flex-end;background:rgba(240,192,92,.12);border:1px solid rgba(240,192,92,.3)}
 .aim.b{align-self:flex-start;background:#101215;border:1px solid var(--line)}
 .aim.err{border-color:rgba(255,107,127,.4);color:var(--down)}
 .aim.typing{color:var(--dim)}
 /* ردود سريعة تحت رد المساعد */
-.aiq{display:flex;flex-wrap:wrap;gap:6px;align-self:flex-start;max-width:92%}
+.aiq{display:flex;flex-wrap:wrap;gap:6px;align-self:flex-start;max-width:92%;animation:aiPop .3s ease .12s both}
 .aiq button{background:rgba(240,192,92,.1);border:1px solid rgba(240,192,92,.35);color:var(--sand);border-radius:99px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s}
 .aiq button:hover{background:rgba(240,192,92,.22)} .aiq button:active{transform:scale(.96)}
 .airow{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line)}
@@ -802,7 +813,8 @@ footer{padding-bottom:max(18px,calc(env(safe-area-inset-bottom) + 14px))}
 </div>
 
 <!-- وكيل رصد: زر ولوحة المحادثة الذكية -->
-<button id="aiFab" title="مساعد رصد الذكي — يجيب بالأسعار الحية">✦</button>
+<div id="aiBackdrop"></div>
+<button id="aiFab" title="مساعد رصد الذكي — يجيب بالأسعار الحية" aria-expanded="false" aria-controls="aiPanel">✦</button>
 <div id="aiPanel">
   <div class="aihead"><b>🤖 مساعد رصد</b><small>يجيب بالأسعار الحية للسوقين · ليست توصية استثمارية</small><button id="aiClose" title="إغلاق">✕</button></div>
   <div id="aiMsgs"></div>
@@ -2792,15 +2804,22 @@ if(window.visualViewport){window.visualViewport.addEventListener('resize',aiFitV
 // منع سفاري من تمرير الصفحة لإظهار الحقل — اللوحة نفسها تتكيّف مع لوحة المفاتيح
 aiIn.addEventListener('focus',()=>{setTimeout(()=>{if(document.body.classList.contains('ai-lock'))window.scrollTo(0,0);aiFitViewport();},50);});
 aiIn.addEventListener('blur',()=>setTimeout(aiFitViewport,50));
-function aiClosePanel(){aiPanel.classList.remove('open');aiIn.blur();aiFitViewport();aiLock(false);}
-document.getElementById('aiFab').addEventListener('click',()=>{
-  if(aiPanel.classList.contains('open')){aiClosePanel();return;}
-  aiPanel.classList.add('open');aiLock(true);
-  if(aiPanel.classList.contains('open')){
-    if(!aiMsgs.childElementCount){aiBubble('b','هلا والله 👋 أنا مساعد رصد — أجاوبك بالأسعار الحية للسوقين وأراجع صفقاتك.\n💡 اختر رداً سريعاً أو اكتب سؤالك');aiQuick(['وش أفضل فرصة اليوم؟','حلل سهم أرامكو','راجع محفظتي']);}
-    aiIn.focus();
-  }
-});
+const aiFab=document.getElementById('aiFab'),aiBackdrop=document.getElementById('aiBackdrop');
+// حالة الزر والخلفية: ✦ مغلقة · ✕ مفتوحة
+function aiSetOpen(on){
+  aiPanel.classList.toggle('open',on);aiBackdrop.classList.toggle('on',on);
+  aiFab.classList.toggle('on',on);aiFab.textContent=on?'✕':'✦';aiFab.setAttribute('aria-expanded',String(on));
+}
+function aiClosePanel(){if(!aiPanel.classList.contains('open'))return;aiIn.blur();aiSetOpen(false);aiFitViewport();aiLock(false);}
+function aiOpenPanel(){
+  if(!aiMsgs.childElementCount){aiBubble('b','هلا والله 👋 أنا مساعد رصد — أجاوبك بالأسعار الحية للسوقين وأراجع صفقاتك.\n💡 اختر رداً سريعاً أو اكتب سؤالك');aiQuick(['وش أفضل فرصة اليوم؟','حلل سهم أرامكو','راجع محفظتي']);}
+  aiLock(true);aiSetOpen(true);
+  aiMsgs.scrollTop=aiMsgs.scrollHeight;
+  // لا تركيز تلقائي على حقل السؤال: لوحة المفاتيح تظهر فقط عندما يضغط المستخدم الحقل بنفسه
+}
+aiFab.addEventListener('click',()=>{aiPanel.classList.contains('open')?aiClosePanel():aiOpenPanel();});
+aiBackdrop.addEventListener('click',aiClosePanel);
+document.addEventListener('keydown',e=>{if(e.key==='Escape')aiClosePanel();});
 document.getElementById('aiClose').addEventListener('click',aiClosePanel);
 const aiPost=payload=>fetch('/api/ask',{method:'POST',headers:{'Content-Type':'application/json','x-rasad-pass':localStorage.getItem('rasad_ai_pass')||''},body:JSON.stringify(payload)});
 async function aiSend(){
