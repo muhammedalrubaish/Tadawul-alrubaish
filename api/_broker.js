@@ -55,12 +55,17 @@ async function submitBracketOrder({ symbol, qty, tp, sl, limit }) {
   return api('POST', '/v2/orders', body);
 }
 
+// كل الأوامر المعلّقة (أرجل الوقف/الهدف للمراكز المفتوحة + أوامر شراء لم تُنفَّذ)
+const getOpenOrders = () => api('GET', '/v2/orders?status=open&limit=200&nested=false');
+// سجل التنفيذات (شراء وبيع) من نشاط الحساب — لبناء الصفقات المغلقة وربحها المحقق
+const getFills = (n = 200) => api('GET', `/v2/account/activities/FILL?direction=desc&page_size=${Math.min(500, Math.max(1, n))}`);
+
 const closePosition = symbol => api('DELETE', `/v2/positions/${encodeURIComponent(symbol)}`);
 const closeAllPositions = () => api('DELETE', `/v2/positions?cancel_orders=true`);
 const cancelAllOrders = () => api('DELETE', '/v2/orders');
 const hasKeys = () => !!(KEY && SECRET);
 
 module.exports = {
-  getAccount, getPositions, getClock, marketOpensToday, getTodayFilledBuyOrders, getOpenBuyOrders, cancelOrder,
+  getAccount, getPositions, getClock, marketOpensToday, getTodayFilledBuyOrders, getOpenBuyOrders, getOpenOrders, getFills, cancelOrder,
   submitBracketOrder, closePosition, closeAllPositions, cancelAllOrders, hasKeys, PAPER
 };
