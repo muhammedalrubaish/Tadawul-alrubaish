@@ -12,7 +12,11 @@ function tradingDay(market) {
   return market === 'sa' ? !(wd === 'Fri' || wd === 'Sat') : !(wd === 'Sat' || wd === 'Sun');
 }
 
+// ميزانية الوقت داخل مهلة الدالة (maxDuration = 60 ث في vercel.json) مع هامش للإرسال
+const DEADLINE = 50000;
+
 module.exports = async (req, res) => {
+  const t0 = Date.now();
   res.setHeader('Cache-Control', 'no-store');
   const q = req.query || {};
 
@@ -45,35 +49,43 @@ module.exports = async (req, res) => {
       return res.status(200).json({ ok: true, market, scanned: list.length, trade });
     }
 
+    // التداول الآلي أولاً: السوق الأمريكي فقط، ومتوقف تماماً ما لم يُفعَّل صراحةً (AUTOTRADE_ENABLED=true)
+    // كان يأتي بعد التعليق الصباحي؛ نداءان للذكاء الاصطناعي (حتى 45 ث لكل منهما) قد يتجاوزان مهلة الدالة (60 ث)
+    // فتُقطع دورة التداول بصمت. الآن الدورة الأساسية تسبق التعليق الاختياري.
+    let trade = null, tradeMsg = null;
+    if (market === 'us') {
+      try {
+        trade = await autotrade.runCycle(list);
+        // يُبلَّغ المستخدم بكل نتيجة عدا «التداول متوقف» الافتراضية كي لا تتكرر الرسالة يومياً
+        if (trade && (trade.ok || trade.stopped || (trade.skipped && autotrade.cfg().enabled))) tradeMsg = autotrade.fmtCycle(trade);
+      } catch (e) {
+        trade = { error: String(e.message || e) };
+        tradeMsg = '⚠️ خطأ في دورة التداول الآلي (لم يُنفَّذ أي أمر): ' + esc(String(e.message || e));
+      }
+    }
+
     let msgText = `📬 <b>ملخص وكيل رصد اليومي</b>\n\n` + fmtOpps(market, list);
 
     // تعليق ذكي مقتضب إن كان المفتاح مفعّلاً (اختياري — يتجاوز الفشل بصمت)
     // اللقطة تُمرَّر جاهزة كي لا يعيد المساعد جلب مئات الأسعار داخل مهلة الدالة
-    if (hasKey()) {
+    // مقيَّد بالوقت المتبقي كي تصل رسائل تيليجرام دائماً قبل انتهاء المهلة
+    const left = DEADLINE - (Date.now() - t0);
+    if (hasKey() && left > 8000) {
       try {
         const top = list.slice(0, 8).map(s => `${s.sym} ${s.name} درجة ${s.score} تغير ${s.chg}%`).join('، ');
-        const comment = await ask({
-          question: `هذه أفضل فرص ${market === 'sa' ? 'السوق السعودي' : 'السوق الأمريكي'} اليوم حسب رادار رصد: ${top}. اكتب تعليقاً صباحياً صارماً في 3 جمل كحد أقصى: قراءة عامة للسوق من هذه الأرقام + تحذير مخاطرة واحد محدد.`,
-          snapshots: { [market]: list }
-        });
+        const comment = await Promise.race([
+          ask({
+            question: `هذه أفضل فرص ${market === 'sa' ? 'السوق السعودي' : 'السوق الأمريكي'} اليوم حسب رادار رصد: ${top}. اكتب تعليقاً صباحياً صارماً في 3 جمل كحد أقصى: قراءة عامة للسوق من هذه الأرقام + تحذير مخاطرة واحد محدد.`,
+            snapshots: { [market]: list }
+          }),
+          new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), Math.min(25000, left - 5000)))
+        ]);
         msgText += `\n\n🧠 <b>قراءة المساعد:</b>\n${esc(comment.text)}`;
       } catch (_) {}
     }
 
     await send(CHAT, msgText);
-
-    // التداول الآلي: السوق الأمريكي فقط، ومتوقف تماماً ما لم يُفعَّل صراحةً (AUTOTRADE_ENABLED=true)
-    let trade = null;
-    if (market === 'us') {
-      try {
-        trade = await autotrade.runCycle(list);
-        // يُبلَّغ المستخدم بكل نتيجة عدا «التداول متوقف» الافتراضية كي لا تتكرر الرسالة يومياً
-        if (trade && (trade.ok || trade.stopped || (trade.skipped && autotrade.cfg().enabled))) await send(CHAT, autotrade.fmtCycle(trade));
-      } catch (e) {
-        trade = { error: String(e.message || e) };
-        await send(CHAT, '⚠️ خطأ في دورة التداول الآلي (لم يُنفَّذ أي أمر): ' + esc(String(e.message || e)));
-      }
-    }
+    if (tradeMsg) await send(CHAT, tradeMsg);
 
     return res.status(200).json({ ok: true, market, scanned: list.length, trade });
   } catch (e) {
