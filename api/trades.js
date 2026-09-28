@@ -95,11 +95,13 @@ function buildPerf(closed, positions, fills, spy) {
     { key: 'alpha', label: 'يتفوق على شراء السوق (SPY) لنفس الأيام', value: avgAlpha == null ? '—' : `${avgAlpha >= 0 ? '+' : ''}${r2(avgAlpha)}٪ للصفقة`, ok: avgAlpha != null && avgAlpha > 0 },
     { key: 'pf', label: `مجموع الأرباح ÷ مجموع الخسائر ≥ ${CRITERIA.minProfitFactor}`, value: pf == null ? '—' : pf === Infinity ? 'بلا خسائر' : String(r2(pf)), ok: pf != null && pf >= CRITERIA.minProfitFactor }
   ];
+  // لا حكم قبل اكتمال الشرطين معاً: إن مضت المدة والعينة ناقصة تُمدَّد التجربة تلقائياً حتى تكتمل الصفقات
   const ready = checks[0].ok && checks[1].ok;
+  const extended = !!startedAt && checks[0].ok && !checks[1].ok;
   const verdict = !startedAt ? 'not_started' : !ready ? 'running' : checks.every(c => c.ok) ? 'convincing' : 'not_convincing';
   const openAlpha = avg(positions.map(p => { const sp = spyReturn(spy, p.entryAt, null); return sp == null ? null : p.plPct - sp; }).filter(v => v != null));
   return {
-    startedAt, days, target: CRITERIA.days, closed: n, winRate: n ? Math.round(rows.filter(r => r.pl > 0).length / n * 100) : null,
+    startedAt, days, target: CRITERIA.days, minTrades: CRITERIA.minTrades, extended, closed: n, winRate: n ? Math.round(rows.filter(r => r.pl > 0).length / n * 100) : null,
     avgRet: r2(avgRet), avgSpy: r2(avg(withSpy.map(r => r.spy))), avgAlpha: r2(avgAlpha), profitFactor: pf === Infinity ? 'inf' : r2(pf),
     openAlpha: r2(openAlpha), spyOk: !!spy, checks, verdict
   };
