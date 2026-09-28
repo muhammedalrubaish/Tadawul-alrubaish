@@ -3439,21 +3439,25 @@ function agentModeBanner(d){
 /* ===== تقرير الفعالية: تجربة الشهر بمعايير محددة مسبقاً ===== */
 function agentPerfHtml(p,enabled){
   if(!p)return'';
+  const minT=p.minTrades||10;
   const V={
     not_started:['⏳','لم تبدأ التجربة بعد',enabled?'تبدأ تلقائياً مع أول صفقة يشتريها الوكيل.':'فعّل التداول التجريبي (AUTOTRADE_ENABLED) لتبدأ مع أول صفقة.','u'],
-    running:['🧪','التجربة جارية — لا حكم بعد',`الحكم يصدر بعد ${p.target} يوماً و${p.checks[1].label.split(' ')[0]} صفقات مغلقة على الأقل.`,'u'],
+    running:p.extended
+      ?['⏳','التجربة مُمدَّدة — العينة لم تكتمل',`مضت ${p.target} يوماً والصفقات المغلقة ${p.closed} من ${minT}. تستمر التجربة تلقائياً حتى ${minT} صفقات، فالحكم على عينة أصغر لا يُعتمد عليه.`,'u']
+      :['🧪','التجربة جارية — لا حكم بعد',`الحكم يصدر بعد ${p.target} يوماً و${minT} صفقات مغلقة على الأقل — إن مضت المدة قبل اكتمال الصفقات تُمدَّد تلقائياً.`,'u'],
     convincing:['✅','مقنع مبدئياً','اجتاز الوكيل كل المعايير. شهر واحد يبقى عينة صغيرة، فمدّد التجربة قبل أي مال حقيقي.','p'],
     not_convincing:['❌','غير مقنع','لم يجتز كل المعايير المحددة مسبقاً. لا تنقله إلى مال حقيقي.','n']
   }[p.verdict]||['⏳','—','','u'];
   const SHORT={not_started:'لم تبدأ',running:'جارية',convincing:'مقنع',not_convincing:'غير مقنع'}[p.verdict]||'—';
-  const prog=Math.max(0,Math.min(100,Math.round(p.days/p.target*100)));
+  // التقدّم = الأبطأ بين المدة وعدد الصفقات (الحكم يحتاج الاثنين)
+  const prog=Math.max(0,Math.min(100,Math.round(Math.min(p.days/p.target,(p.closed||0)/minT)*100)));
   const started=p.startedAt?new Date(p.startedAt).toLocaleDateString('ar',{day:'numeric',month:'long'}):'—';
   const rows=p.checks.map(c=>`<div class="act-row"><span class="act-dot ${c.ok?'ok':'no'}">${c.ok?'✓':'✕'}</span><div><b>${esc(c.label)}</b><small>الحالي: ${esc(c.value)}</small></div></div>`).join('');
   const pct=v=>v==null?'—':(v>=0?'+':'')+fmt(v)+'٪';
   return`<div class="act-card perf-card">
     <div class="act-head">📊 تجربة الشهر — هل الوكيل فعّال؟ <span class="act-state ${p.verdict==='convincing'?'on':''}">${V[0]} ${SHORT}</span></div>
     <div class="perf-prog"><i style="width:${prog}%"></i></div>
-    <div class="perf-meta">اليوم ${p.days} من ${p.target} · بدأت ${started}</div>
+    <div class="perf-meta">${p.extended?`اليوم ${p.days} · مُمدَّدة`:`اليوم ${p.days} من ${p.target}`} · الصفقات ${p.closed} من ${minT} · بدأت ${started}</div>
     <div class="perf-kpis">
       <div><small>صفقات مغلقة</small><b>${p.closed}</b></div>
       <div><small>نسبة الربح</small><b>${p.winRate==null?'—':p.winRate+'٪'}</b></div>
