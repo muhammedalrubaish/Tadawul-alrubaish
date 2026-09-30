@@ -74,9 +74,14 @@ function spyReturn(spy, entryAt, exitAt) {
 const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
 
 // المعايير محددة قبل بدء التجربة كي لا تُفصَّل على النتيجة بعدها
-const CRITERIA = { days: 30, minTrades: 10, minAvgRet: 0.15, minProfitFactor: 1.2 };
-function buildPerf(closed, positions, fills, spy) {
-  const buys = (fills || []).filter(f => f.side === 'buy').map(f => Date.parse(f.transaction_time)).filter(Number.isFinite);
+// from: بداية التجربة الحالية — أُعيدت بعد نقل موعد الشراء إلى ما بعد افتتاح وول ستريت؛ ما قبلها خارج التقييم
+const CRITERIA = { days: 30, minTrades: 10, minAvgRet: 0.15, minProfitFactor: 1.2, from: '2026-09-30T14:30:00Z' };
+function buildPerf(closed, positions, fills, spy, from = CRITERIA.from) {
+  const t0 = from ? Date.parse(from) : 0;
+  const after = at => at && Date.parse(at) >= t0;
+  closed = (closed || []).filter(t => after(t.entryAt));
+  positions = (positions || []).filter(p => after(p.entryAt));
+  const buys = (fills || []).filter(f => f.side === 'buy' && after(f.transaction_time)).map(f => Date.parse(f.transaction_time)).filter(Number.isFinite);
   const startedAt = buys.length ? new Date(Math.min(...buys)).toISOString() : null;
   const days = startedAt ? Math.floor((Date.now() - Date.parse(startedAt)) / 864e5) : 0;
   const rows = closed.map(t => { const sp = spyReturn(spy, t.entryAt, t.exitAt); return { ret: t.plPct, spy: sp, alpha: sp == null ? null : t.plPct - sp, pl: t.pl }; });
@@ -101,7 +106,7 @@ function buildPerf(closed, positions, fills, spy) {
   const verdict = !startedAt ? 'not_started' : !ready ? 'running' : checks.every(c => c.ok) ? 'convincing' : 'not_convincing';
   const openAlpha = avg(positions.map(p => { const sp = spyReturn(spy, p.entryAt, null); return sp == null ? null : p.plPct - sp; }).filter(v => v != null));
   return {
-    startedAt, days, target: CRITERIA.days, minTrades: CRITERIA.minTrades, extended, closed: n, winRate: n ? Math.round(rows.filter(r => r.pl > 0).length / n * 100) : null,
+    from: from || null, startedAt, days, target: CRITERIA.days, minTrades: CRITERIA.minTrades, extended, closed: n, winRate: n ? Math.round(rows.filter(r => r.pl > 0).length / n * 100) : null,
     avgRet: r2(avgRet), avgSpy: r2(avg(withSpy.map(r => r.spy))), avgAlpha: r2(avgAlpha), profitFactor: pf === Infinity ? 'inf' : r2(pf),
     openAlpha: r2(openAlpha), spyOk: !!spy, checks, verdict
   };
