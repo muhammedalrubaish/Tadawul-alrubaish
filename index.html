@@ -3394,6 +3394,7 @@ function renderAgentTrades(){
     h+=`<div style="padding:12px 16px 4px;font-weight:800;font-size:13.5px">⏳ أوامر شراء معلّقة <span style="color:var(--dim);font-weight:400">(${d.pending.length})</span></div>`;
     d.pending.forEach(o=>{h+=`<div class="jrow"><div class="jrow-left"><div class="jrow-icon open-t">⏳</div><div class="jrow-info"><div class="jrow-name">${esc(o.name)} <span class="mono" style="font-size:11px;color:var(--dim)">${esc(o.sym)}</span></div><div class="jrow-detail">${o.qty} سهم${o.limit?` · بحد ${fmt(o.limit)}$`:' · بسعر السوق'} · أُرسل ${dtShort(o.submittedAt)} · يُلغى تلقائياً إن لم يُنفَّذ خلال الدورة التالية</div></div></div></div>`;});
   }
+  h+=agentOrdersHtml(d.orders);
   h+=`<div style="padding:12px 16px 4px;font-weight:800;font-size:13.5px">✅ صفقات مغلقة <span style="color:var(--dim);font-weight:400">(آخر ${d.closed.length})</span></div>`;
   if(d.fillsError)h+=`<div class="empty" style="padding:14px;color:var(--sand)">⚠️ تعذّر جلب سجل الصفقات المغلقة: ${esc(d.fillsError)}</div>`;
   else if(!d.closed.length)h+=`<div class="empty" style="padding:14px">لا صفقات مغلقة بعد</div>`;
@@ -3434,6 +3435,26 @@ function agentModeBanner(d){
       <small>⚠️ يجب تغيير المفاتيح و<code>ALPACA_PAPER</code> معاً. إن اختلفا يرفض Alpaca الاتصال ولا يُنفَّذ أي أمر، وهذا فشل آمن.<br>⚠️ في الحساب الحقيقي الأقل من 25 ألف دولار، يقيّد نظام «المتداول اليومي» (PDT) الشراء والبيع في اليوم نفسه بثلاث مرات كل خمسة أيام عمل.<br>🔁 تحوّل هذه اللوحة إلى شريط أحمر «حساب حقيقي» تلقائياً عند التفعيل.</small>
     </details>
   </div>`;
+}
+
+/* ===== سجل أوامر الوكيل: كل أمر شراء أرسله ومصيره ===== */
+function agentOrdersHtml(list){
+  if(list==null)return'';
+  const ST={filled:['✅','نُفِّذ','var(--up)'],partially_filled:['◐','نُفِّذ جزئياً','var(--up)'],
+    canceled:['↩️','أُلغي دون تنفيذ','var(--sand)'],expired:['⌛','انتهى دون تنفيذ','var(--sand)'],
+    rejected:['⛔','رفضه الوسيط','var(--down)']};
+  let h=`<div style="padding:12px 16px 4px;font-weight:800;font-size:13.5px">🧾 سجل أوامر الوكيل <span style="color:var(--dim);font-weight:400">(آخر 30 يوماً · ${list.length})</span></div>`;
+  h+=`<div class="calc-note" style="margin:0 16px 6px">كل أمر شراء أرسله الوكيل ومصيره. اليوم الذي لا أمر فيه يعني أن الوكيل قرر ألا يشتري؛ سبب كل دورة يصلك في تيليجرام.</div>`;
+  if(!list.length)return h+`<div class="empty" style="padding:14px">لم يُرسل الوكيل أي أمر شراء بعد</div>`;
+  list.forEach(o=>{
+    const s=ST[o.status]||['⏳','معلّق لدى الوسيط','var(--dim)'];
+    const px=o.filledPrice?`نُفِّذ بسعر ${fmt(o.filledPrice)}`:(o.limit?`بحد ${fmt(o.limit)}$`:'بسعر السوق');
+    h+=`<div class="jrow"><div class="jrow-left"><div class="jrow-icon open-t">${s[0]}</div><div class="jrow-info">
+      <div class="jrow-name">${esc(o.name)} <span class="mono" style="font-size:11px;color:var(--dim)">${esc(o.sym)}</span> <span style="font-size:11.5px;color:${s[2]};margin-inline-start:6px">${s[1]}</span></div>
+      <div class="jrow-detail">${o.qty} سهم · ${px} · أُرسل ${dtShort(o.submittedAt)}</div>
+    </div></div></div>`;
+  });
+  return h;
 }
 
 /* ===== تقرير الفعالية: تجربة الشهر بمعايير محددة مسبقاً ===== */

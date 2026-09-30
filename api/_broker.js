@@ -61,12 +61,20 @@ const getOpenOrders = () => api('GET', '/v2/orders?status=open&limit=200&nested=
 // الحد الأقصى لدى Alpaca 100 سجل في الصفحة
 const getFills = (n = 100) => api('GET', `/v2/account/activities/FILL?direction=desc&page_size=${Math.min(100, Math.max(1, n))}`);
 
+// كل أوامر الشراء في آخر N يوماً بكل حالاتها (نُفِّذ · أُلغي · انتهى · مرفوض · معلّق)
+// يكشف الأوامر التي أرسلها الوكيل ولم تُنفَّذ — لا تظهر في سجل التنفيذات
+async function getRecentBuyOrders(days = 30) {
+  const after = new Date(Date.now() - days * 864e5).toISOString();
+  const orders = await api('GET', `/v2/orders?status=all&direction=desc&limit=100&nested=false&after=${encodeURIComponent(after)}`);
+  return (orders || []).filter(o => o.side === 'buy');
+}
+
 const closePosition = symbol => api('DELETE', `/v2/positions/${encodeURIComponent(symbol)}`);
 const closeAllPositions = () => api('DELETE', `/v2/positions?cancel_orders=true`);
 const cancelAllOrders = () => api('DELETE', '/v2/orders');
 const hasKeys = () => !!(KEY && SECRET);
 
 module.exports = {
-  getAccount, getPositions, getClock, marketOpensToday, getTodayFilledBuyOrders, getOpenBuyOrders, getOpenOrders, getFills, cancelOrder,
+  getAccount, getPositions, getClock, marketOpensToday, getTodayFilledBuyOrders, getOpenBuyOrders, getOpenOrders, getFills, getRecentBuyOrders, cancelOrder,
   submitBracketOrder, closePosition, closeAllPositions, cancelAllOrders, hasKeys, PAPER
 };

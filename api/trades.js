@@ -145,9 +145,10 @@ module.exports = async (req, res) => {
   try {
     // سجل التنفيذات ثانوي: فشله لا يُسقط الحساب والمراكز المفتوحة، بل يُعرض كتنبيه
     let fillsError = null;
-    const [acc, positions, open, fills] = await Promise.all([
+    const [acc, positions, open, fills, buyOrders] = await Promise.all([
       broker.getAccount(), broker.getPositions(), broker.getOpenOrders(),
-      broker.getFills(100).catch(e => { fillsError = String((e && e.message) || e); return []; })
+      broker.getFills(100).catch(e => { fillsError = String((e && e.message) || e); return []; }),
+      broker.getRecentBuyOrders(30).catch(() => null)
     ]);
     // أرجل الوقف والهدف: أوامر بيع معلّقة على رمز مركز مفتوح
     const legs = {};
@@ -167,6 +168,12 @@ module.exports = async (req, res) => {
       sym: o.symbol, name: nameOf(o.symbol), qty: +o.qty, type: o.type, limit: o.limit_price ? +o.limit_price : null,
       submittedAt: o.submitted_at, status: o.status
     }));
+    // سجل أوامر الوكيل: كل أمر شراء ومصيره — يفرّق بين «لم يقرر الشراء» و«قرر ولم يُنفَّذ الأمر»
+    const orders = buyOrders == null ? null : buyOrders.slice(0, 30).map(o => ({
+      sym: o.symbol, name: nameOf(o.symbol), qty: +o.qty, status: o.status,
+      limit: o.limit_price ? +o.limit_price : null, filledPrice: o.filled_avg_price ? n2(o.filled_avg_price) : null,
+      submittedAt: o.submitted_at, filledAt: o.filled_at || null, endedAt: o.canceled_at || o.expired_at || o.failed_at || null
+    }));
     const closed = closedTrades(fills || []);
     // تاريخ دخول كل مركز مفتوح = أقدم شراء لم يُغلق بعد (لمقارنته بالسوق من اليوم نفسه)
     const openLots = {};
@@ -184,7 +191,7 @@ module.exports = async (req, res) => {
     return res.status(200).json({
       ...base,
       account: { equity: n2(acc.equity), lastEquity: n2(acc.last_equity), dailyPL, cash: n2(acc.cash), buyingPower: n2(acc.buying_power), blocked: !!(acc.trading_blocked || acc.account_blocked) },
-      positions: pos, pending, closed: closed.slice(0, 30), fillsError, perf,
+      positions: pos, pending, orders, closed: closed.slice(0, 30), fillsError, perf,
       stats: { closed: closed.length, wins, losses: closed.length - wins, realized, unrealized: n2(pos.reduce((a, p) => a + p.pl, 0)) },
       at: new Date().toISOString()
     });
