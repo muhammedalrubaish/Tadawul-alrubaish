@@ -284,7 +284,7 @@ async function decide({ candidates, positions, account, limits, canSell }) {
     : 'لا مراكز مفتوحة.';
   const dailyPL = +account.equity - +account.last_equity;
   const userMsg =
-    `التاريخ والوقت: ${new Date().toISOString().slice(0, 16)} UTC (قبل افتتاح وول ستريت غالباً؛ الأسعار أدناه آخر تداول)\n\n` +
+    `التاريخ والوقت: ${new Date().toISOString().slice(0, 16)} UTC (أثناء جلسة وول ستريت؛ الأسعار لحظية، و«تغير اليوم» منذ إغلاق الأمس، والسيولة مُسقطة على يوم كامل)\n\n` +
     `[الحساب] حقوق الملكية ${(+account.equity).toFixed(2)}$ · قوة شرائية ${(+account.buying_power).toFixed(2)}$ · ربح/خسارة اليوم ${dailyPL.toFixed(2)}$\n` +
     `[الحدود التي سيطبقها النظام] حجم الصفقة ≤ ${limits.maxPositionUsd}$ · صفقات جديدة مسموحة اليوم: ${limits.budget} · الحد الأدنى للثقة ${limits.minConfidence}\n` +
     `[البيع] ${canSell ? 'مسموح إغلاق مركز مفتوح بقرار close' : 'غير مسموح — لا تُخرج close'}\n\n` +

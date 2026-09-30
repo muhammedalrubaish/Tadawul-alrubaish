@@ -33,11 +33,25 @@ function computeRSI(closes, period = 14) {
   return Math.round(100 - 100 / (1 + rs));
 }
 
+// النسبة التقريبية من حجم اليوم الكامل المتداولة بعد مرور جزء من الجلسة (منحنى U: الافتتاح أنشط)
+// تُستخدم لإسقاط حجم الجلسة الجارية على يوم كامل كي لا تبدو السيولة ضعيفة منتصف الجلسة
+const VOL_CURVE = [[0, 0], [.077, .12], [.154, .20], [.231, .27], [.308, .33], [.462, .44], [.615, .55], [.769, .66], [.923, .82], [1, 1]];
+function volShare(f) {
+  if (!(f > 0)) return 0;
+  if (f >= 1) return 1;
+  for (let i = 1; i < VOL_CURVE.length; i++) {
+    const [x1, y1] = VOL_CURVE[i], [x0, y0] = VOL_CURVE[i - 1];
+    if (f <= x1) return y0 + (y1 - y0) * (f - x0) / (x1 - x0);
+  }
+  return 1;
+}
+
 // نسبة السيولة = حجم تداول اليوم ÷ متوسط حجم آخر 20 جلسة سابقة
-function computeVolRatio(vols) {
+// share < 1: الجلسة جارية — يُسقَط حجم اليوم الجزئي على يوم كامل
+function computeVolRatio(vols, share = 1) {
   const v = (vols || []).filter(x => x > 0);
   if (v.length < 6) return 0;
-  const today = v[v.length - 1];
+  const today = v[v.length - 1] / (share > 0.05 && share < 1 ? share : 1);
   const hist = v.slice(Math.max(0, v.length - 21), v.length - 1);
   const avg = hist.reduce((a, b) => a + b, 0) / hist.length;
   if (!avg) return 0;
@@ -73,11 +87,17 @@ async function yahooOne(ysym) {
         const closes = bars.map(b => +b[1]);
         if (closes.length && todayInSeries) closes[closes.length - 1] = price;
         else if (closes.length) closes.push(price);
+        // الجلسة الجارية: الجزء المنقضي منها لتصحيح حجم اليوم الجزئي
+        const reg = m.currentTradingPeriod && m.currentTradingPeriod.regular;
+        let share = 1;
+        if (todayInSeries && reg && reg.end > reg.start && m.regularMarketTime < reg.end) {
+          share = volShare((m.regularMarketTime - reg.start) / (reg.end - reg.start));
+        }
         return {
           price,
           open: prevClose,
           rsi: computeRSI(closes),
-          volRatio: computeVolRatio(ind.volume)
+          volRatio: computeVolRatio(ind.volume, share)
         };
       }
       lastErr = new Error('no price');
@@ -179,3 +199,5 @@ module.exports = async (req, res) => {
   }
 };
 module.exports.getQuotes = getQuotes;
+module.exports.computeVolRatio = computeVolRatio;
+module.exports.volShare = volShare;

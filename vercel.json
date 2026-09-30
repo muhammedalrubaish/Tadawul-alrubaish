@@ -1,7 +1,7 @@
 {
   "crons": [
     { "path": "/api/agent", "schedule": "45 6 * * *" },
-    { "path": "/api/agent", "schedule": "0 13 * * *" }
+    { "path": "/api/agent", "schedule": "0 15 * * *" }
   ],
   "functions": {
     "api/ask.js": { "maxDuration": 60 },

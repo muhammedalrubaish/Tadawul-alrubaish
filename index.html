@@ -3377,7 +3377,7 @@ function renderAgentTrades(){
   h+=agentActivationHtml(d);
   // المراكز المفتوحة مع موقع السعر بين الوقف والهدف
   h+=`<div style="padding:12px 16px 4px;font-weight:800;font-size:13.5px">📌 مراكز مفتوحة <span style="color:var(--dim);font-weight:400">(${d.positions.length})</span></div>`;
-  if(!d.positions.length)h+=`<div class="empty" style="padding:14px">لا مراكز مفتوحة الآن — الوكيل يقرر قبل افتتاح وول ستريت يومياً</div>`;
+  if(!d.positions.length)h+=`<div class="empty" style="padding:14px">لا مراكز مفتوحة الآن — الوكيل يقرر يومياً 6 مساءً بتوقيت الرياض (أثناء جلسة وول ستريت)</div>`;
   d.positions.forEach(p=>{
     const span=p.sl&&p.tp?p.tp-p.sl:0;
     const pos=span>0?Math.max(0,Math.min(100,(p.price-p.sl)/span*100)):null;
@@ -3473,6 +3473,7 @@ function agentPerfHtml(p,enabled){
   // التقدّم = الأبطأ بين المدة وعدد الصفقات (الحكم يحتاج الاثنين)
   const prog=Math.max(0,Math.min(100,Math.round(Math.min(p.days/p.target,(p.closed||0)/minT)*100)));
   const started=p.startedAt?new Date(p.startedAt).toLocaleDateString('ar',{day:'numeric',month:'long'}):'—';
+  const fromD=p.from?new Date(p.from).toLocaleDateString('ar',{day:'numeric',month:'long'}):'';
   const rows=p.checks.map(c=>`<div class="act-row"><span class="act-dot ${c.ok?'ok':'no'}">${c.ok?'✓':'✕'}</span><div><b>${esc(c.label)}</b><small>الحالي: ${esc(c.value)}</small></div></div>`).join('');
   const pct=v=>v==null?'—':(v>=0?'+':'')+fmt(v)+'٪';
   return`<div class="act-card perf-card">
@@ -3489,6 +3490,7 @@ function agentPerfHtml(p,enabled){
     <div class="perf-verdict ${V[3]}"><b>${V[0]} ${V[1]}</b>${V[2]}</div>
     <div style="font-weight:800;font-size:12.5px;margin:10px 0 2px">المعايير (محددة قبل البدء كي لا تُفصَّل على النتيجة)</div>
     ${rows}
+    ${fromD?`<small class="perf-note">🔁 أُعيدت التجربة من ${fromD} بعد نقل موعد الشراء إلى ما بعد افتتاح وول ستريت — الصفقات قبله تبقى في السجل لكنها خارج التقييم.</small>`:''}
     <small class="perf-note">🔎 المقارنة: عائد كل صفقة مقابل شراء SPY (السوق الأمريكي كله) من افتتاح يوم الدخول حتى إغلاق يوم الخروج — تقريبية.${p.spyOk?'':' تعذّر جلب SPY الآن.'} الحساب التجريبي ينفّذ بأسعار أفضل من الواقع أحياناً، فالنتيجة الحقيقية غالباً أسوأ قليلاً.</small>
   </div>`;
 }
@@ -3504,7 +3506,7 @@ function agentActivationHtml(d){
     row(true,'رمز الحماية AI_PASS','مضبوط — بيانات الحساب محمية'),
     row(r.cron,'حماية الجدولة CRON_SECRET',r.cron?'مضبوط':'أضف نصاً عشوائياً طويلاً باسم <b>CRON_SECRET</b>'),
     row(r.telegram,'إشعارات تيليجرام',r.telegram?'مفعّلة — تصلك كل صفقة وسببها':'اختياري — بدونه تتابع الصفقات من هنا فقط',true),
-    row(d.enabled,'المفتاح الرئيسي AUTOTRADE_ENABLED',d.enabled?'مفعّل — الوكيل يشتري تلقائياً قبل افتتاح وول ستريت يومياً':'متوقف — الوكيل يحلل فقط ولا يشتري')
+    row(d.enabled,'المفتاح الرئيسي AUTOTRADE_ENABLED',d.enabled?'مفعّل — الوكيل يشتري تلقائياً يومياً 6 مساءً بتوقيت الرياض':'متوقف — الوكيل يحلل فقط ولا يشتري')
   ].join('');
   const guide=d.enabled?'':`<div class="act-guide">
       <b>⚡ لتشغيل الشراء التلقائي</b>
@@ -3587,13 +3589,13 @@ async function renderAgentCard(){
         <li><b>بوت تيليجرام:</b> راسل <b>@BotFather</b> في تيليجرام → أرسل /newbot → انسخ التوكن → أضفه باسم <b>TELEGRAM_TOKEN</b> وأعد النشر.</li>
         <li>افتح في المتصفح مرة واحدة: <span class="mono" style="font-size:11px;direction:ltr;unicode-bidi:embed">${location.origin}/api/tg?setup=&lt;التوكن&gt;</span> لربط البوت بالخادم.</li>
         <li>أرسل أي رسالة لبوتك في تيليجرام — سيرد عليك بمعرّف محادثتك؛ أضفه باسم <b>TELEGRAM_CHAT</b> وأعد النشر.</li>
-        <li>انتهى ✓ — ستصلك رسالة «فرص اليوم» تلقائياً قبل افتتاح كل سوق (9:45 صباحاً للسعودي و4 عصراً للأمريكي بتوقيت الرياض)، وتقدر تسأل البوت أي شيء في أي وقت.</li>
+        <li>انتهى ✓ — ستصلك رسالة «فرص اليوم» تلقائياً يومياً (9:45 صباحاً قبل افتتاح السعودي، و6 مساءً أثناء جلسة الأمريكي بتوقيت الرياض)، وتقدر تسأل البوت أي شيء في أي وقت.</li>
       </ol>
     </details>
     <details style="margin-top:10px">
       <summary style="cursor:pointer;color:var(--down);font-weight:700;font-size:13px">⚠️ التداول الآلي (تنفيذ حقيقي بأموال — السوق الأمريكي فقط)</summary>
       <div style="margin-top:10px;padding:11px 13px;background:rgba(255,107,127,.08);border:1px solid rgba(255,107,127,.3);border-radius:10px;font-size:12px;line-height:2;color:var(--dim)">
-        <b style="color:var(--down)">متوقف تماماً افتراضياً.</b> عند تفعيله يقرأ <b>الذكاء الاصطناعي</b> (DeepSeek أو Claude) قبل افتتاح وول ستريت لقطة السوق ومراكزك المفتوحة، ويختار من قائمة المرشّحين ما يشتريه (أو يمتنع)، ويحدد وقف الخسارة والهدف لكل صفقة، ثم يرسل النظام أمر شراء بحد سعري عبر وسيط Alpaca مع وقف وهدف يُنفَّذهما الوسيط نفسه — كل ذلك ضمن حدود صارمة تضعها أنت لا يستطيع الوكيل تجاوزها.
+        <b style="color:var(--down)">متوقف تماماً افتراضياً.</b> عند تفعيله يقرأ <b>الذكاء الاصطناعي</b> (DeepSeek أو Claude) أثناء جلسة وول ستريت لقطة السوق اللحظية ومراكزك المفتوحة، ويختار من قائمة المرشّحين ما يشتريه (أو يمتنع)، ويحدد وقف الخسارة والهدف لكل صفقة، ثم يرسل النظام أمر شراء بحد سعري عبر وسيط Alpaca مع وقف وهدف يُنفَّذهما الوسيط نفسه — كل ذلك ضمن حدود صارمة تضعها أنت لا يستطيع الوكيل تجاوزها.
         <ol style="margin:8px 18px 0 0;padding:0">
           <li>أنشئ حساباً مجانياً في <b>alpaca.markets</b> (ابدأ بحساب <b>Paper Trading</b> التجريبي بمال وهمي)</li>
           <li>انسخ مفتاحي API وأضفهما في Vercel باسم <b>ALPACA_KEY</b> و<b>ALPACA_SECRET</b></li>
