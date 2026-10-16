@@ -558,36 +558,37 @@ footer{padding-bottom:max(18px,calc(env(safe-area-inset-bottom) + 14px))}
 #dash{display:none}
 body.dash{padding:0!important;overflow-x:clip} /* clip لا hidden: hidden يجعل body حاوية تمرير فيتعطل التثبيت sticky */
 body.dash>header,body.dash>main,body.dash>.bnav,body.dash>footer,body.dash>.apibar,body.dash>.tape,body.dash>.disc{display:none!important}
-body.dash #dash{display:grid;grid-template-columns:1fr 212px;min-height:100vh;min-height:100dvh}
+body.dash #dash{display:grid;grid-template-columns:250px minmax(0,1fr);min-height:100vh;min-height:100dvh}
 body.dash #dash>.tape{grid-column:1/-1;position:sticky;top:0;z-index:40}
-/* الشريط الجانبي (يمين في RTL) */
-.dside{grid-row:2;grid-column:2;position:sticky;top:40px;height:calc(100vh - 40px);height:calc(100dvh - 40px);display:flex;flex-direction:column;gap:8px;padding:12px 10px;border-inline-start:1px solid var(--line);background:rgba(13,14,17,.92);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);overflow-y:auto;scrollbar-width:thin}
-.dside .logo{padding:4px 6px 10px;border-bottom:1px solid var(--line);margin-bottom:4px}
-.dside .logo-mark{width:38px;height:38px}
+/* الشريط الجانبي يمين الشاشة: في RTL العمود الأول في الشبكة هو الأيمن (كان في العمود الثاني فظهر يساراً) */
+.dside{grid-row:2;grid-column:1;position:sticky;top:40px;height:calc(100vh - 40px);height:calc(100dvh - 40px);display:flex;flex-direction:column;gap:6px;padding:10px 10px;border-inline-end:1px solid var(--line);background:rgba(13,14,17,.92);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);overflow-x:hidden;overflow-y:auto;scrollbar-width:thin}
+.dside .logo{padding:2px 6px 8px;border-bottom:1px solid var(--line);margin-bottom:2px}
+.dside .logo-mark{width:34px;height:34px}
 .dside .logo h1{font-size:19px} .dside .logo small{font-size:10.5px}
-.dnav{display:grid;gap:3px}
-.dnav a{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:10px;color:var(--dim);text-decoration:none;font-size:12.5px;font-weight:700;transition:.15s;white-space:nowrap}
+.dnav{display:grid;gap:1px;padding:0;margin:0;max-width:none;width:auto;position:static;border:0;background:none}
+.dnav a{display:flex;align-items:center;gap:9px;padding:clamp(4px,.62vh,8px) 10px;border-radius:9px;color:var(--dim);text-decoration:none;font-size:13px;font-weight:700;transition:.15s;line-height:1.35;min-width:0}
+.dnav a span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dnav a svg{width:17px;height:17px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .dnav a:hover{color:var(--text);background:rgba(240,192,92,.07)}
 .dnav a.on{color:var(--sand);background:rgba(240,192,92,.12);box-shadow:inset 0 0 0 1px rgba(240,192,92,.4)}
-.dnav .dsep{font-size:10.5px;color:var(--dim);opacity:.7;padding:8px 10px 2px;letter-spacing:.3px}
+.dnav .dsep{font-size:10.5px;color:var(--dim);opacity:.7;padding:6px 10px 1px;letter-spacing:.3px;border-top:1px solid var(--line);margin-top:4px}
 .dside-foot{margin-top:auto;display:grid;gap:8px;padding-top:8px;border-top:1px solid var(--line)}
 /* الصحة العامة */
-.dhealth{background:#0A0B0D;border:1px solid var(--line);border-radius:14px;padding:10px}
+.dhealth{background:#0A0B0D;border:1px solid var(--line);border-radius:12px;padding:8px 10px}
 .dhealth .dh-top{display:flex;align-items:center;gap:10px}
-.dgauge{width:64px;height:64px;position:relative;flex-shrink:0}
-.dgauge svg{transform:rotate(-90deg);width:64px;height:64px}
-.dgauge .gn{position:absolute;inset:0;display:grid;place-items:center;font-size:17px;font-weight:800;color:var(--sand);line-height:1}
+.dgauge{width:52px;height:52px;position:relative;flex-shrink:0}
+.dgauge svg{transform:rotate(-90deg);width:52px;height:52px}
+.dgauge .gn{position:absolute;inset:0;display:grid;place-items:center;font-size:15px;font-weight:800;color:var(--sand);line-height:1}
 .dgauge .gn small{font-size:9px;color:var(--dim);font-weight:400}
 .dhealth b.lbl{font-size:12.5px;display:block} .dhealth .dh-top small{display:block;font-size:11px;color:var(--dim)}
-.dh-rows{display:grid;gap:5px;margin-top:9px}
-.dh-row{display:grid;grid-template-columns:60px 1fr 34px;gap:6px;align-items:center;font-size:10.5px;color:var(--dim)}
+.dh-rows{display:grid;gap:3px;margin-top:7px}
+.dh-row{display:grid;grid-template-columns:78px 1fr 46px;gap:6px;align-items:center;font-size:10.5px;color:var(--dim);white-space:nowrap}
 .dh-row i{display:block;height:6px;border-radius:99px;background:#15161A;overflow:hidden}
 .dh-row i b{display:block;height:100%;border-radius:99px}
 .dh-row .mono{font-size:10.5px;text-align:left}
 .dlast{font-size:11px;color:var(--dim);line-height:1.7;padding:0 4px}
 /* العمود الرئيسي */
-.dmain{grid-row:2;grid-column:1;min-width:0;padding:12px 14px 30px}
+.dmain{grid-row:2;grid-column:2;min-width:0;padding:12px 14px 30px}
 .dtop{position:sticky;top:40px;z-index:35;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 12px;margin-bottom:12px;border:1px solid var(--line);border-radius:14px;background:rgba(13,14,17,.9);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
 .dtabs{display:flex;gap:4px}
 .dtabs a{color:var(--dim);text-decoration:none;font-size:12.5px;font-weight:800;padding:7px 13px;border-radius:9px;transition:.15s}
@@ -606,10 +607,19 @@ body.dash #dash>.tape{grid-column:1/-1;position:sticky;top:0;z-index:40}
 .dmenu button.dng:hover{background:rgba(255,107,127,.1);color:var(--down)}
 .dtop .apibar{margin:0;flex-basis:100%;padding:8px 12px}
 /* شبكة البطاقات */
-.dgrid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:12px;align-items:start}
-.dcard{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);min-width:0;box-shadow:0 10px 28px rgba(0,0,0,.28);scroll-margin-top:100px}
+.dgrid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:12px;align-items:stretch}
+.dcard{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);min-width:0;box-shadow:0 10px 28px rgba(0,0,0,.28);scroll-margin-top:100px;display:flex;flex-direction:column}
+.dcard>.dbody,.dcard>.dslot{flex:1 1 auto}
+.dcard>.dtable{flex:1 1 auto}
 .dcard>.dhd{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--line);background:rgba(0,0,0,.4);border-radius:var(--r) var(--r) 0 0}
 .dhd b{font-size:13.5px;font-weight:800} .dhd small{color:var(--dim);font-size:11px;margin-inline-start:4px}
+/* زر تصوير الصفقات في رأس البطاقة */
+.dshot{margin-inline-start:auto;background:#0A0B0D;border:1px solid var(--line);color:var(--text);font-family:inherit;font-size:11.5px;font-weight:800;padding:4px 10px;border-radius:8px;cursor:pointer;white-space:nowrap}
+.dshot:hover{border-color:var(--sand);color:var(--sand)} .dshot:disabled{opacity:.5;cursor:wait}
+.dshot+.dots{margin-inline-start:8px}
+/* أثناء التصوير: المحتوى كاملاً بلا تمرير داخلي + تذييل بالتاريخ */
+.shooting .dtable,.shooting .dslot.tall,.shooting .dach{max-height:none!important;overflow:visible!important}
+.shot-foot{padding:9px 14px;font-size:11px;color:var(--dim);border-top:1px solid var(--line);text-align:center}
 .dhd .dots{margin-inline-start:auto;display:flex;gap:4px} .dhd .dots i{width:8px;height:8px;border-radius:50%;display:block}
 .dhd .dots i:nth-child(1){background:var(--down)} .dhd .dots i:nth-child(2){background:var(--sand)} .dhd .dots i:nth-child(3){background:var(--up)}
 .dbody{padding:12px 14px}
@@ -619,7 +629,8 @@ body.dash #dash>.tape{grid-column:1/-1;position:sticky;top:0;z-index:40}
 .dslot .seg{display:none}
 .c3{grid-column:span 3} .c4{grid-column:span 4} .c5{grid-column:span 5} .c6{grid-column:span 6} .c7{grid-column:span 7} .c8{grid-column:span 8} .c9{grid-column:span 9} .c12{grid-column:span 12}
 /* بطاقات المؤشرات (KPI) */
-.dk{border-radius:var(--r);border:1px solid var(--line);background:var(--panel);padding:0;overflow:hidden;min-width:0}
+.dk{border-radius:var(--r);border:1px solid var(--line);background:var(--panel);padding:0;overflow:hidden;min-width:0;display:flex;flex-direction:column}
+.dk .dkb{flex:1}
 .dk .dkh{display:flex;align-items:center;gap:6px;padding:8px 12px;font-size:11px;font-weight:800;letter-spacing:.3px;color:#140D00}
 .dk .dkh .dots{margin-inline-start:auto;display:flex;gap:4px} .dk .dkh .dots i{width:7px;height:7px;border-radius:50%;background:rgba(20,13,0,.35);display:block}
 .dk.gold .dkh{background:var(--grad-gold)} .dk.green .dkh{background:var(--grad-up)} .dk.blue .dkh{background:linear-gradient(135deg,#57A6FF,#2b6fd6);color:#fff} .dk.purple .dkh{background:linear-gradient(135deg,#A78BFA,#6d4fd6);color:#fff}
@@ -679,6 +690,14 @@ body.dash #dash>.tape{grid-column:1/-1;position:sticky;top:0;z-index:40}
 .ddist{display:grid;grid-template-columns:118px 1fr;gap:10px;align-items:center}
 .ddist .ddonut{width:118px;height:118px}
 .ddist .ddonut .c b{font-size:16px}
+/* صفحات اللوحة: الأقسام غير التابعة للصفحة الحالية تُخفى، وفي صفحة القسم المنفرد لا تمرير داخلي */
+.dgrid>.pg-off{display:none!important}
+.dgrid.pg-solo .dcard.r2{grid-row:auto}
+.dgrid.pg-solo .dslot.tall,.dgrid.pg-solo .dtable,.dgrid.pg-solo .dach,.dgrid.pg-solo .dnotes{max-height:none}
+.dpg-title{display:none;align-items:center;gap:10px;margin:0 0 12px;font-size:17px;font-weight:800}
+.dpg-title button{background:#0A0B0D;border:1px solid var(--line);color:var(--dim);font-family:inherit;font-size:12px;font-weight:800;padding:6px 12px;border-radius:9px;cursor:pointer}
+.dpg-title button:hover{color:var(--sand);border-color:var(--sand)}
+.dmain.pg-sub .dpg-title{display:flex}
 /* الأقسام المنقولة من الموقع الحالي: حدود ارتفاع مع تمرير داخلي كي لا تطول الصفحة بلا حد */
 .dslot.tall{max-height:640px;overflow:auto}
 .dslot .sg{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
@@ -696,7 +715,7 @@ body.dash .toast{bottom:22px}
 @media (orientation:portrait){body.dash #rotateOverlay{display:grid}}
 /* شاشات أضيق بلا دعم التصغير (احتياطي): تخطيط مضغوط. مع التصغير (.dash-fit) تُرسم اللوحة بعرض سطح المكتب ثم تُصغَّر */
 @media(max-width:1180px){
-  body.dash:not(.dash-fit) #dash{grid-template-columns:1fr 64px}
+  body.dash:not(.dash-fit) #dash{grid-template-columns:64px minmax(0,1fr)}
   body:not(.dash-fit) .dside{padding:10px 6px}
   body:not(.dash-fit) .dside .logo div,body:not(.dash-fit) .dnav a span,body:not(.dash-fit) .dnav .dsep,body:not(.dash-fit) .dside .dlast{display:none}
   body:not(.dash-fit) .dnav a{justify-content:center;padding:9px 0} body:not(.dash-fit) .dnav a svg{width:19px;height:19px}
@@ -720,6 +739,40 @@ body.dash .toast{bottom:22px}
 }
 /* التصغير: العناصر الثابتة خارج اللوحة (المساعد، النافذة، التنبيه) تبقى بحجمها الطبيعي */
 body.dash-fit .disc{font-size:12px}
+/* شاشات قصيرة (حاسوب 768px): تفاصيل الصحة ووقت التحديث تُخفى كي تتسع القائمة كاملة بلا تمرير */
+@media (max-height:860px){body.dash .dh-rows,body.dash .dlast{display:none}}
+/* ===== ألوان لوحة التحكم: رمادي فحمي محايد + برتقالي للتمييز + أخضر/أحمر للربح والخسارة ===== */
+body.dash{
+  --ink:#101010; --panel:#1A1A1A; --panel2:#222222; --line:#2B2B2B;
+  --sand:#F5A524; --text:#F2F2F2; --dim:#8E8E93;
+  --up:#22C55E; --down:#EF4444; --blue:#7C8B9E; --purple:#A1A1AA;
+  --r:14px;
+  --grad-gold:linear-gradient(135deg,#F7B23B,#E07B0A);
+  --grad-up:linear-gradient(135deg,#22C55E,#15803D);
+  background:var(--ink)}
+body.dash::before{background:radial-gradient(900px 420px at 30% -160px,rgba(34,197,94,.09),transparent 70%),radial-gradient(700px 380px at 100% -120px,rgba(245,165,36,.05),transparent 70%)}
+body.dash .tape{background:#0C0C0C}
+body.dash .dside{background:#151515;border-color:var(--line)}
+body.dash .dtop{background:rgba(26,26,26,.92);border-color:var(--line)}
+body.dash .dcard,body.dash .dk{background:linear-gradient(180deg,#1D1D1D,#171717);border-color:var(--line);box-shadow:0 1px 0 rgba(255,255,255,.03) inset,0 8px 24px rgba(0,0,0,.35)}
+body.dash .dcard>.dhd{background:transparent;border-bottom-color:var(--line)}
+body.dash .dhd b{color:#E6E6E6;font-weight:700}
+body.dash .dhd .dots,body.dash .dk .dkh .dots{display:none}
+body.dash .dk .dkh,body.dash .dk.gold .dkh,body.dash .dk.green .dkh,body.dash .dk.blue .dkh,body.dash .dk.purple .dkh{background:transparent;color:#BDBDBD;font-size:12px;font-weight:700;letter-spacing:0;padding:11px 13px 0}
+body.dash .dk .v{font-weight:700}
+/* القائمة: العنصر النشط «حبة» رمادية بارزة لا ذهبية */
+body.dash .dnav a{color:#A3A3A3}
+body.dash .dnav a:hover{color:#F2F2F2;background:#1F1F1F}
+body.dash .dnav a.on{color:#FFFFFF;background:linear-gradient(180deg,#2A2A2A,#232323);box-shadow:inset 0 0 0 1px #363636,0 2px 6px rgba(0,0,0,.35)}
+body.dash .dnav a.on svg{color:var(--sand)}
+body.dash .dtabs a.on{background:#2A2A2A;color:#fff;box-shadow:inset 0 0 0 1px #3A3A3A}
+/* الصناديق الداخلية */
+body.dash .dhealth,body.dash .duser>button,body.dash .dgoal .g2>div,body.dash .dprog i,body.dash .dtop5 div,body.dash .dach .r,body.dash .dstat>div,body.dash .dshot,body.dash .dpg-title button{background:#141414;border-color:var(--line)}
+body.dash .dmenu{background:#1E1E1E}
+body.dash .dmenu button:hover{background:#2A2A2A;color:var(--sand)}
+body.dash input,body.dash select,body.dash textarea{background:#141414;border-color:var(--line)}
+body.dash .dtable table th{color:var(--dim);background:#171717}
+body.dash .dtop5 .sy{background:rgba(245,165,36,.14);color:var(--sand)}
 </style>
 </head>
 <body>
@@ -1187,12 +1240,15 @@ body.dash-fit .disc{font-size:12px}
         <div class="dmenu" id="dMenu">
           <button type="button" id="dSwitchPortal">🔁 تبديل البوابة</button>
           <button type="button" id="dRefresh">↻ تحديث البيانات الآن</button>
+          <button type="button" data-shot-go="dJournal" data-label="صفقاتي (بدون وكيل)">📸 تصوير صفقاتي (بدون وكيل)</button>
+          <button type="button" data-shot-go="dAgentTrades" data-label="صفقات الوكيل">📸 تصوير صفقات الوكيل</button>
           <button type="button" class="dng" id="dLogout">🚪 تسجيل الخروج</button>
         </div>
       </div>
       <div id="dashApiSlot" style="flex-basis:100%"></div>
     </div>
     <div id="dashDiscSlot"></div>
+    <div class="dpg-title"><button type="button" id="dPgBack">→ لوحة التحكم</button><span id="dPgName"></span></div>
     <div class="dgrid">
       <!-- الصف 1: المؤشرات + الأهداف (تمتد على صفين) -->
       <div class="c9 kp" id="dPortfolio" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px">
@@ -1201,37 +1257,37 @@ body.dash-fit .disc{font-size:12px}
         <div class="dk purple"><div class="dkh">العائد<span class="dots"><i></i><i></i><i></i></span></div><div class="dkb" id="dkYield"></div></div>
         <div class="dk blue"><div class="dkh">الشهر الحالي<span class="dots"><i></i><i></i><i></i></span></div><div class="dkb" id="dkMonth"></div></div>
       </div>
-      <div class="dcard c3 r2"><div class="dhd"><b>أهداف المحفظة</b><span class="dots"><i></i><i></i><i></i></span></div><div class="dbody dgoal" id="dGoals"></div></div>
+      <div class="dcard c3 r2" id="dGoalsCard"><div class="dhd"><b>أهداف المحفظة</b><span class="dots"><i></i><i></i><i></i></span></div><div class="dbody dgoal" id="dGoals"></div></div>
       <!-- الصف 2: الأداء + التحدي -->
       <div class="dcard c6" id="dPerf"><div class="dhd"><b>الأداء — خطة 12 شهراً</b><small>من حاسبة النمو: رأس المال والإضافات والربح المركّب</small><span class="dots"><i></i><i></i><i></i></span></div>
         <div class="dbody"><div class="dcv-wrap"><canvas id="dPerfCv"></canvas><div class="sim-tip" id="dPerfTip"></div></div>
-          <div class="dlegend"><span><i style="background:#c98500"></i>رأس المال</span><span><i style="background:#3987e5"></i>الإضافات الشهرية</span><span><i style="background:#199e70"></i>الربح المركّب</span><span id="dPerfGoalLg"></span></div></div></div>
-      <div class="dcard c3"><div class="dhd"><b>أداء التحدي</b><small>معدل النجاح على الصفقات المغلقة</small></div>
+          <div class="dlegend"><span><i style="background:#45454A"></i>رأس المال</span><span><i style="background:#F5A524"></i>الإضافات الشهرية</span><span><i style="background:#22C55E"></i>الربح المركّب</span><span id="dPerfGoalLg"></span></div></div></div>
+      <div class="dcard c3" id="dChalCard"><div class="dhd"><b>أداء التحدي</b><small>معدل النجاح على الصفقات المغلقة</small></div>
         <div class="dbody"><div class="dchal"><div class="ddonut"><canvas id="dChalCv"></canvas><div class="c" id="dChalC"></div></div><div class="dcnt" id="dChalN"></div></div>
           <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--line)"><b style="font-size:12.5px">الالتزام بوقف الخسارة</b><div id="dSl" style="margin-top:6px"></div></div></div></div>
       <!-- الصف 3: المراكز الحالية + سجل الإنجازات -->
-      <div class="dcard c8" id="dPositions"><div class="dhd"><b>المراكز الحالية</b><small>صفقاتك المفتوحة بالسعر الحي</small><span class="dots"><i></i><i></i><i></i></span></div>
+      <div class="dcard c8" id="dPositions"><div class="dhd"><b>المراكز الحالية</b><small>صفقاتك المفتوحة بالسعر الحي</small><button class="dshot" type="button" data-shot="dPositions" data-label="صفقاتي المفتوحة" title="حفظ صورة لهذه الصفقات">📸 تصوير</button><span class="dots"><i></i><i></i><i></i></span></div>
         <div class="dtable"><table><thead><tr><th>السهم</th><th>الحالة</th><th>الكمية</th><th>متوسط التكلفة</th><th>السعر الحالي</th><th>القيمة السوقية</th><th>الربح/الخسارة</th><th>الهدف</th><th>الوقف</th><th></th></tr></thead><tbody id="dPosBody"></tbody></table></div>
         <div class="dlegend" style="padding:8px 14px 10px"><span><i style="background:var(--up)"></i>مفتوح</span><span><i style="background:var(--sand)"></i>قرب الهدف</span><span><i style="background:var(--down)"></i>كسر الوقف</span></div></div>
-      <div class="dcard c4" id="dClosed"><div class="dhd"><b>سجل الإنجازات</b><small>الصفقات المغلقة</small><span class="dots"><i></i><i></i><i></i></span></div><div class="dbody dach" id="dAch"></div></div>
+      <div class="dcard c4" id="dClosed"><div class="dhd"><b>سجل الإنجازات</b><small>الصفقات المغلقة</small><button class="dshot" type="button" data-shot="dClosed" data-label="صفقاتي المغلقة" title="حفظ صورة لهذه الصفقات">📸 تصوير</button><span class="dots"><i></i><i></i><i></i></span></div><div class="dbody dach" id="dAch"></div></div>
       <!-- الصف 4: أعلى المراكز + التوزيع + الإحصائيات + التنبيهات -->
-      <div class="dcard c3"><div class="dhd"><b>أعلى المراكز</b><small>بالقيمة السوقية</small><span class="dots"><i></i><i></i><i></i></span></div><div class="dbody dtop5" id="dTop5"></div></div>
-      <div class="dcard c3"><div class="dhd"><b>توزيع المحفظة</b><small>حسب القيمة السوقية</small></div><div class="dbody ddist"><div class="ddonut"><canvas id="dDistCv"></canvas><div class="c" id="dDistC"></div></div><div class="dist-legend" id="dDistLg"></div></div></div>
-      <div class="dcard c3"><div class="dhd"><b>إحصائيات المحفظة</b><span class="dots"><i></i><i></i><i></i></span></div><div class="dbody dstat" id="dStats"></div></div>
+      <div class="dcard c3" id="dTop5Card"><div class="dhd"><b>أعلى المراكز</b><small>بالقيمة السوقية</small><span class="dots"><i></i><i></i><i></i></span></div><div class="dbody dtop5" id="dTop5"></div></div>
+      <div class="dcard c3" id="dDistCard"><div class="dhd"><b>توزيع المحفظة</b><small>حسب القيمة السوقية</small></div><div class="dbody ddist"><div class="ddonut"><canvas id="dDistCv"></canvas><div class="c" id="dDistC"></div></div><div class="dist-legend" id="dDistLg"></div></div></div>
+      <div class="dcard c3" id="dStatsCard"><div class="dhd"><b>إحصائيات المحفظة</b><span class="dots"><i></i><i></i><i></i></span></div><div class="dbody dstat" id="dStats"></div></div>
       <div class="dcard c3" id="dAlerts"><div class="dhd"><b>التنبيهات</b><span class="dots"><i></i><i></i><i></i></span></div><div class="dbody dalert" id="dAlertList"></div></div>
       <!-- الصف 5: ملاحظات الذكاء الاصطناعي (مدرب التداول) -->
-      <div class="dcard c12"><div class="dhd"><b>🧠 ملاحظات الذكاء الاصطناعي</b><small>مدرب التداول يقرأ سجلّك ويكشف أخطاءك</small><span class="dots"><i></i><i></i><i></i></span></div><div class="dnotes" id="dNotes"></div></div>
+      <div class="dcard c12" id="dNotesCard"><div class="dhd"><b>🧠 ملاحظات الذكاء الاصطناعي</b><small>مدرب التداول يقرأ سجلّك ويكشف أخطاءك</small><span class="dots"><i></i><i></i><i></i></span></div><div class="dnotes" id="dNotes"></div></div>
       <!-- أقسام رصد الحالية (غير الموجودة في التصميم) — تُنقل هنا من صفحاتها بنفس بياناتها -->
       <div class="dcard c12" id="dRec"><div class="dhd"><b>🎯 توصية الجلسة والفرص المتاحة</b><span class="dots"><i></i><i></i><i></i></span></div><div class="dslot" id="slotRec"></div></div>
       <div class="dcard c7" id="dRadar"><div class="dhd"><b>📡 رادار الفرص</b><span class="dots"><i></i><i></i><i></i></span></div><div class="dslot" id="slotRadar"></div></div>
       <div class="dcard c5" id="dNews"><div class="dhd"><b>📰 الأخبار المرتبطة بالأسهم</b><span class="dots"><i></i><i></i><i></i></span></div><div class="dslot" id="slotNews"></div></div>
       <div class="dcard c12" id="dStocks"><div class="dhd"><b>📊 الأسهم الفعّالة</b><span class="dots"><i></i><i></i><i></i></span></div><div class="dslot tall" id="slotStocks"></div></div>
       <div class="dcard c12" id="dStrats"><div class="dhd"><b>⚖️ استراتيجيات التداول</b><span class="dots"><i></i><i></i><i></i></span></div><div class="dslot" id="slotStrats"></div></div>
-      <div class="dcard c12" id="dJournal"><div class="dhd"><b>📋 سجل العمليات — صفقاتي</b><span class="dots"><i></i><i></i><i></i></span></div><div class="dslot" id="slotJournal"></div></div>
+      <div class="dcard c12" id="dJournal"><div class="dhd"><b>📋 سجل العمليات — صفقاتي</b><button class="dshot" type="button" data-shot="dJournal" data-label="صفقاتي (بدون وكيل)" title="حفظ صورة لهذه الصفقات">📸 تصوير</button><span class="dots"><i></i><i></i><i></i></span></div><div class="dslot" id="slotJournal"></div></div>
       <div class="dcard c12" id="dSim"><div class="dhd"><b>🎬 محاكي الاستثمار التاريخي + الباك-تيست</b><span class="dots"><i></i><i></i><i></i></span></div><div class="dslot" id="slotSim"></div></div>
       <div class="dcard c12" id="dLab"><div class="dhd"><b>🔬 التحليل الفني — مختبر الفيواب الشهري</b><span class="dots"><i></i><i></i><i></i></span></div><div class="dslot" id="slotLab"></div></div>
       <div class="dcard c6" id="dAgent"><div class="dhd"><b>🤖 وكيل رصد — الحالة والربط</b><span class="dots"><i></i><i></i><i></i></span></div><div class="dslot" id="slotAgent"></div></div>
-      <div class="dcard c6" id="dAgentTrades"><div class="dhd"><b>🤖 صفقات الوكيل (Alpaca)</b><span class="dots"><i></i><i></i><i></i></span></div><div class="dslot tall" id="slotAgentTrades"></div></div>
+      <div class="dcard c6" id="dAgentTrades"><div class="dhd"><b>🤖 صفقات الوكيل (Alpaca)</b><button class="dshot" type="button" data-shot="dAgentTrades" data-label="صفقات الوكيل" title="حفظ صورة لهذه الصفقات">📸 تصوير</button><span class="dots"><i></i><i></i><i></i></span></div><div class="dslot tall" id="slotAgentTrades"></div></div>
       <div class="dcard c7" id="dSettings"><div class="dhd"><b>⚙️ الإعدادات — محفظتي ومخاطرتي + مدرب التداول</b><span class="dots"><i></i><i></i><i></i></span></div><div class="dslot" id="slotAssist"></div></div>
       <div class="dcard c5" id="dGrowth"><div class="dhd"><b>📈 حاسبة نمو رأس المال</b><span class="dots"><i></i><i></i><i></i></span></div><div class="dslot" id="slotGrowth"></div></div>
       <div class="dcard c12" id="dGlance"><div class="dhd"><b>👁 نظرة سريعة</b><small>بطاقة مختصرة لكل قسم</small><span class="dots"><i></i><i></i><i></i></span></div><div class="dslot" id="slotGlance"></div></div>
@@ -2920,7 +2976,7 @@ function updateSegCounts(){
 
 /* ========= التنقل بين الصفحات (القوائم السفلية) ========= */
 function switchView(v){
-  if(DASH){dashGoto(v);return;} // في لوحة التحكم كل الأقسام ظاهرة: التنقل = تمرير إلى القسم
+  if(DASH){dashGoto(v);return;} // في لوحة التحكم: التنقل = فتح صفحة القسم داخل اللوحة
   document.querySelectorAll('.view').forEach(el=>el.classList.toggle('on',el.id==='view-'+v));
   document.querySelectorAll('.bnav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
   localStorage.setItem('rasad_view',v);
@@ -3699,12 +3755,95 @@ async function gateInit(){
 
 /* ========= لوحة التحكم الموحدة ========= */
 const DASH_MAP={glance:'dGlance',home:'dRec',stocks:'dStocks',radar:'dRadar',sim:'dSim',lab:'dLab',port:'dJournal'};
-function dashScrollTo(id){
-  const el=document.getElementById(id);if(!el)return;
-  const y=el.getBoundingClientRect().top+window.scrollY-(id==='dTop'?200:96);
-  window.scrollTo({top:Math.max(0,y),behavior:'smooth'});
+// صفحات اللوحة: «لوحة التحكم» تعرض الملخص، وكل خيار آخر يستبدل المحتوى بقسمه كصفحة مستقلة (بلا إعادة تحميل)
+// span: عرض البطاقة من 12 عموداً في تلك الصفحة؛ natural: تبقى المقاسات الأصلية للبطاقات
+const DASH_PAGES={
+  dTop:{natural:true,ids:['dPortfolio','dGoalsCard','dPerf','dChalCard','dPositions','dClosed','dTop5Card','dDistCard','dStatsCard','dAlerts','dNotesCard']},
+  dPortfolio:{natural:true,ids:['dPortfolio','dGoalsCard','dTop5Card','dDistCard','dStatsCard']},
+  dPositions:{ids:['dPositions']},
+  dClosed:{ids:['dClosed','dChalCard'],span:{dClosed:8,dChalCard:4}},
+  dJournal:{ids:['dJournal']},
+  dLab:{ids:['dLab']},
+  dPerf:{ids:['dPerf','dChalCard','dStatsCard'],span:{dChalCard:6,dStatsCard:6}},
+  dAlerts:{ids:['dAlerts','dNotesCard']},
+  dSettings:{ids:['dSettings']},
+  dRec:{ids:['dRec']},dRadar:{ids:['dRadar']},dNews:{ids:['dNews']},dStocks:{ids:['dStocks']},dStrats:{ids:['dStrats']},
+  dSim:{ids:['dSim']},dAgent:{ids:['dAgent']},dAgentTrades:{ids:['dAgentTrades']},dGrowth:{ids:['dGrowth']},dGlance:{ids:['dGlance']}
+};
+let DPAGE='dTop';
+function dashShow(id,opt){
+  opt=opt||{};
+  if(!DASH_PAGES[id])id='dTop';
+  const pg=DASH_PAGES[id],grid=document.querySelector('#dash .dgrid'),set=new Set(pg.ids);
+  [...grid.children].forEach(el=>{
+    el.classList.toggle('pg-off',!set.has(el.id));
+    el.style.gridColumn=pg.natural||!set.has(el.id)?'':`span ${(pg.span&&pg.span[el.id])||12}`;
+  });
+  grid.classList.toggle('pg-solo',!pg.natural);
+  document.querySelector('#dash .dmain').classList.toggle('pg-sub',id!=='dTop');
+  const link=document.querySelector(`#dnav a[data-t="${id}"]`);
+  document.getElementById('dPgName').textContent=link?link.textContent.trim():'';
+  document.querySelectorAll('#dnav a,.dtabs a').forEach(l=>l.classList.toggle('on',l.dataset.t===id));
+  if(!opt.noHistory&&id!==DPAGE)history.pushState({dpg:id},'');
+  else if(opt.replace)history.replaceState({dpg:id},'');
+  DPAGE=id;
+  window.scrollTo(0,0);
+  // الرسوم تُعاد بعد ظهورها (المخفية بلا عرض فلا تُرسم)
+  requestAnimationFrame(()=>{
+    renderDash();
+    if(id==='dSim'){SIM.series?simDraw(SIM.prog):runSim();}
+    if(id==='dLab'&&LAB.bars)labDraw();
+    if(id==='dJournal')renderJournal();
+  });
 }
-function dashGoto(v){dashScrollTo(DASH_MAP[v]||'dTop');}
+function dashGoto(v){dashShow(DASH_MAP[v]||'dTop');}
+window.addEventListener('popstate',e=>{if(DASH)dashShow((e.state&&e.state.dpg)||'dTop',{noHistory:true});});
+
+/* تصوير الصفقات (صفقاتي أو صفقات الوكيل) إلى صورة PNG — مكتبة html-to-image تُحمَّل عند أول استخدام فقط
+   (ترسم عبر المتصفح نفسه فيبقى النص العربي متصلاً سليماً) */
+const H2I_URL='https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js';
+let h2iP=null;
+function loadH2I(){
+  if(window.htmlToImage)return Promise.resolve(window.htmlToImage);
+  return h2iP||(h2iP=new Promise((res,rej)=>{
+    const sc=document.createElement('script');sc.src=H2I_URL;sc.async=true;
+    sc.onload=()=>window.htmlToImage?res(window.htmlToImage):rej(new Error('lib'));
+    sc.onerror=()=>{h2iP=null;sc.remove();rej(new Error('lib'));};
+    document.head.appendChild(sc);
+  }));
+}
+async function shotCard(id,label,btn){
+  const el=document.getElementById(id);if(!el)return;
+  if(btn)btn.disabled=true;
+  toast('📸 جارٍ تجهيز صورة '+label+'…');
+  let lib;
+  try{lib=await loadH2I();}catch(e){if(btn)btn.disabled=false;toast('تعذّر تحميل أداة التصوير — تحقق من الاتصال وأعد المحاولة');return;}
+  const dash=document.getElementById('dash'),z=dash.style.zoom;
+  const foot=document.createElement('div');foot.className='shot-foot';
+  foot.textContent=`رصد · ${label} · ${new Date().toLocaleString('ar-SA-u-nu-latn-ca-gregory',{dateStyle:'medium',timeStyle:'short'})}`;
+  el.appendChild(foot);el.classList.add('shooting');
+  if(z)dash.style.zoom=''; // التصغير على الجوال يربك قياس الأبعاد في الصورة
+  try{
+    const blob=await lib.toBlob(el,{pixelRatio:2,backgroundColor:'#121317',filter:n=>!(n.classList&&n.classList.contains('dshot'))});
+    if(!blob)throw new Error('empty');
+    const name=`rasad-${id==='dAgentTrades'?'agent':'my'}-trades-${new Date().toISOString().slice(0,10)}.png`;
+    const file=new File([blob],name,{type:'image/png'});
+    // الجوال والآيباد: نافذة المشاركة (حفظ في الصور/واتساب…)، وإلا تنزيل مباشر
+    if(matchMedia('(pointer:coarse)').matches&&navigator.canShare&&navigator.canShare({files:[file]})){
+      try{await navigator.share({files:[file],title:'رصد — '+label});}catch(e){if(e&&e.name!=='AbortError')throw e;}
+    }else{
+      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();
+      setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);
+      toast('✅ حُفظت الصورة: '+name);
+    }
+  }catch(e){toast('تعذّر التصوير: '+((e&&e.message)||e));}
+  finally{foot.remove();el.classList.remove('shooting');if(z){dash.style.zoom=z;}if(btn)btn.disabled=false;}
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('.dshot');if(b){e.preventDefault();shotCard(b.dataset.shot,b.dataset.label,b);return;}
+  const g=e.target.closest('[data-shot-go]');
+  if(g){e.preventDefault();const id=g.dataset.shotGo;dashShow(id);setTimeout(()=>shotCard(id,g.dataset.label,document.querySelector(`#${id} .dshot`)),350);}
+});
 function enterDash(){
   DASH=true;document.body.classList.add('dash');
   const mv=(id,slot)=>{const el=document.getElementById(id),s=document.getElementById(slot);if(el&&s)s.appendChild(el);};
@@ -3723,20 +3862,8 @@ function enterDash(){
   dashFit();
   renderAllDash();renderNews();
   if(typeof loadAgentTrades==='function')loadAgentTrades();
-  // المحاكي يعمل تلقائياً أول مرة عندما تظهر بطاقته
-  if('IntersectionObserver' in window){
-    const io=new IntersectionObserver(es=>{es.forEach(x=>{if(x.isIntersecting){io.disconnect();if(!SIM.series)runSim();else simDraw(SIM.prog);}});},{threshold:.15});
-    io.observe(document.getElementById('dSim'));
-    // تمييز القسم النشط في الشريط الجانبي
-    const links=[...document.querySelectorAll('#dnav a,.dtabs a')];
-    const vis=new Map();
-    const io2=new IntersectionObserver(es=>{
-      es.forEach(x=>vis.set(x.target.id,x.isIntersecting?x.intersectionRatio:0));
-      let best=null,bv=0;vis.forEach((v,k)=>{if(v>bv){bv=v;best=k;}});
-      if(best)links.forEach(l=>l.classList.toggle('on',l.dataset.t===best));
-    },{threshold:[.1,.3,.6],rootMargin:'-90px 0px -40% 0px'});
-    links.forEach(l=>{const t=document.getElementById(l.dataset.t);if(t&&!t._obs){t._obs=1;io2.observe(t);}});
-  }
+  // صفحة الملخص أولاً؛ المحاكي يعمل تلقائياً عند فتح صفحته
+  dashShow('dTop',{noHistory:true,replace:true});
 }
 // إحصاءات المحفظة من سجل الصفقات + الإعدادات + الأسعار الحية
 function dashStats(){
@@ -3819,7 +3946,7 @@ function renderDash(){
   // التحدي
   const c=document.getElementById('dChalC');
   c.innerHTML=S.cl.length?`<div><b>${S.wr}٪</b>معدل النجاح</div>`:`<div><b>—</b>لا صفقات مغلقة</div>`;
-  dashDonut(document.getElementById('dChalCv'),S.cl.length?[[S.wins.length,'#31E39A'],[S.losses.length,'#FF6B7F']]:[[1,'#26282F']]);
+  dashDonut(document.getElementById('dChalCv'),S.cl.length?[[S.wins.length,'#22C55E'],[S.losses.length,'#EF4444']]:[[1,'#2B2B2B']]);
   document.getElementById('dChalN').innerHTML=`<div class="w">الصفقات الرابحة<b>${S.wins.length}</b></div><div class="l">الصفقات الخاسرة<b>${S.losses.length}</b></div><div class="o">الصفقات المفتوحة<b>${S.open.length}</b></div>`;
   const slEl=document.getElementById('dSl');
   if(S.withSl.length){
@@ -3850,7 +3977,7 @@ function renderDash(){
   const keys=Object.keys(bySym).sort();const colorOf={};keys.forEach((k,i)=>colorOf[k]=DIST_COLORS[i%DIST_COLORS.length]);
   let ents=Object.entries(bySym).sort((a,b)=>b[1]-a[1]);
   if(ents.length>6){const rest=ents.slice(5).reduce((a,[,v])=>a+v,0);ents=ents.slice(0,5);ents.push(['أخرى',rest]);colorOf['أخرى']=OTHER_COLOR;}
-  dashDonut(document.getElementById('dDistCv'),ents.length?ents.map(([k,v])=>[v,colorOf[k]]):[[1,'#26282F']]);
+  dashDonut(document.getElementById('dDistCv'),ents.length?ents.map(([k,v])=>[v,colorOf[k]]):[[1,'#2B2B2B']]);
   document.getElementById('dDistC').innerHTML=ents.length?`<div><b>${fmtShort(S.mv)}</b>${S.pos.length} مركز</div>`:'<div>لا مراكز</div>';
   document.getElementById('dDistLg').innerHTML=ents.length?ents.map(([k,v])=>{const s=findStock(k);const pc=Math.round(v/S.mv*100);return`<div class="dl-row"><span class="dl-dot" style="background:${colorOf[k]}"></span><span class="nm">${esc(s?s.name:k)}</span><span class="pc ${pc>45?'warn-c':''}">${pc}٪</span></div>`;}).join('')
     :'<div class="dsub">سجّل صفقات مفتوحة ليظهر توزيعها</div>';
@@ -3885,7 +4012,7 @@ function renderDash(){
   const lbl=S.health>=80?'ممتازة':S.health>=65?'جيدة':S.health>=50?'متوسطة':'تحتاج انتباهاً';
   const hc=v=>v>=70?'var(--up)':v>=50?'var(--sand)':'var(--down)';
   const hr=(l,v)=>`<div class="dh-row"><span>${l}</span><i><b style="width:${v}%;background:${hc(v)}"></b></i><span class="mono">${v}/100</span></div>`;
-  document.getElementById('dHealth').innerHTML=`<div class="dh-top"><div class="dgauge"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="none" stroke="#26282F" stroke-width="6"/><circle cx="32" cy="32" r="26" fill="none" stroke="${hc(S.health)}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${off}"/></svg><div class="gn">${S.health}<small>/100</small></div></div><div><b class="lbl">الصحة العامة للمحفظة</b><small style="color:${hc(S.health)}">${lbl}</small></div></div>
+  document.getElementById('dHealth').innerHTML=`<div class="dh-top"><div class="dgauge"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="none" stroke="#2B2B2B" stroke-width="6"/><circle cx="32" cy="32" r="26" fill="none" stroke="${hc(S.health)}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${off}"/></svg><div class="gn">${S.health}<small>/100</small></div></div><div><b class="lbl">الصحة العامة للمحفظة</b><small style="color:${hc(S.health)}">${lbl}</small></div></div>
     <div class="dh-rows">${hr('الأداء العام',H.perf)}${hr('إدارة المخاطر',H.risk)}${hr('تنويع المحفظة',H.div)}${hr('السيولة',H.liq)}${hr('الالتزام بالخطة',H.plan)}</div>`;
   document.getElementById('dLast').textContent=new Date().toLocaleDateString('en-GB')+' — '+new Date().toLocaleTimeString('en-GB').slice(0,5);
 }
@@ -3911,20 +4038,20 @@ function dashPerfDraw(hoverIdx){
   mx=mx*1.08||1;
   const X=i=>padL+(i+0.5)*((W-padL-padR)/n),bw=((W-padL-padR)/n)*0.56;
   const Y=v=>padT+(1-v/mx)*(H-padT-padB);
-  c.strokeStyle='rgba(138,163,192,.14)';c.fillStyle='rgba(138,163,192,.75)';c.lineWidth=1;
+  c.strokeStyle='rgba(142,142,147,.14)';c.fillStyle='rgba(142,142,147,.75)';c.lineWidth=1;
   [0,mx/2,mx].forEach(v=>{const y=Y(v);c.beginPath();c.moveTo(padL,y);c.lineTo(W-padR,y);c.stroke();c.fillText(fmtShort(v),padL+4,y-6);});
   const now=new Date();
   DPERF.forEach((d,i)=>{
     const x=X(i)-bw/2;let y=Y(0);
-    [['base','#c98500'],['dep','#3987e5'],['prof','#199e70']].forEach(([k,col])=>{
+    [['base','#45454A'],['dep','#F5A524'],['prof','#22C55E']].forEach(([k,col])=>{
       const h=Y(0)-Y(d[k]);if(h<=0)return;
       c.fillStyle=col;c.fillRect(x,y-h+(y===Y(0)?0:2),bw,Math.max(0,h-(y===Y(0)?0:2)));y-=h;
     });
-    if(hoverIdx===i){c.strokeStyle='rgba(240,192,92,.9)';c.lineWidth=3;c.strokeRect(x-3,Y(d.fv)-3,bw+6,Y(0)-Y(d.fv)+6);}
-    c.fillStyle='rgba(138,163,192,.8)';c.textAlign='center';
+    if(hoverIdx===i){c.strokeStyle='rgba(245,165,36,.9)';c.lineWidth=3;c.strokeRect(x-3,Y(d.fv)-3,bw+6,Y(0)-Y(d.fv)+6);}
+    c.fillStyle='rgba(142,142,147,.8)';c.textAlign='center';
     c.fillText(new Date(now.getFullYear(),now.getMonth()+i+1,1).toLocaleDateString('en-GB',{month:'short'}).toUpperCase(),X(i),H-12);c.textAlign='left';
   });
-  if(goal&&goal<=mx){c.save();c.setLineDash([7,7]);c.strokeStyle='rgba(240,192,92,.7)';c.lineWidth=2;c.beginPath();c.moveTo(padL,Y(goal));c.lineTo(W-padR,Y(goal));c.stroke();c.restore();c.fillStyle='rgba(240,192,92,.9)';c.textAlign='right';c.fillText('الهدف '+fmtShort(goal),W-padR-4,Y(goal)-8);c.textAlign='left';}
+  if(goal&&goal<=mx){c.save();c.setLineDash([7,7]);c.strokeStyle='rgba(245,165,36,.7)';c.lineWidth=2;c.beginPath();c.moveTo(padL,Y(goal));c.lineTo(W-padR,Y(goal));c.stroke();c.restore();c.fillStyle='rgba(245,165,36,.9)';c.textAlign='right';c.fillText('الهدف '+fmtShort(goal),W-padR-4,Y(goal)-8);c.textAlign='left';}
   const tip=document.getElementById('dPerfTip');
   if(hoverIdx!=null&&DPERF[hoverIdx]){
     const d=DPERF[hoverIdx];
@@ -3960,7 +4087,8 @@ let dashRszT=0;
 window.addEventListener('resize',()=>{if(!DASH)return;dashFit();clearTimeout(dashRszT);dashRszT=setTimeout(()=>{renderDash();if(SIM.series)simDraw(SIM.prog);if(LAB.bars)labDraw();renderJournal();},120);});
 window.addEventListener('orientationchange',()=>{if(DASH)setTimeout(dashFit,60);});
 // التنقل داخل اللوحة
-document.querySelectorAll('#dnav a,.dtabs a').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();dashScrollTo(a.dataset.t);}));
+document.querySelectorAll('#dnav a,.dtabs a').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();dashShow(a.dataset.t);}));
+document.getElementById('dPgBack').addEventListener('click',()=>dashShow('dTop'));
 document.getElementById('dSearchForm').addEventListener('submit',e=>{
   e.preventDefault();
   const s=resolveSymText(document.getElementById('dSearch').value);
