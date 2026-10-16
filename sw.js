@@ -1,5 +1,5 @@
 // Service Worker لتطبيق «رصد» — تثبيت على الشاشة الرئيسية + عمل دون اتصال
-const CACHE = 'rasad-v19';
+const CACHE = 'rasad-v20';
 const SHELL = [
   '/',
   '/manifest.webmanifest',
