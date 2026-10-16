@@ -3422,11 +3422,11 @@ function renderAgentTrades(){
   if(sub)sub.innerHTML=`${d.paper?'حساب تجريبي 🧪 (مال وهمي)':'<span style="color:var(--down)">حساب حقيقي 💰</span>'} · التنفيذ ${d.enabled?'<span style="color:var(--up)">مفعّل ✓</span>':'<span style="color:var(--sand)">متوقف</span>'} · القرار ${d.mode==='ai'?'🧠 '+esc(d.brain):'📐 قواعد الدرجة'} · آخر تحديث ${new Date(AGT.at).toLocaleTimeString('en-GB').slice(0,5)}`;
   const fake=d.paper?' <span class="fake-tag">وهمي</span>':'';
   let h=agentModeBanner(d)+`<div class="jstats">
-    <div class="jst"><div class="l">حقوق الملكية${fake}</div><div class="v mono">${fmt(a.equity)}$</div></div>
-    <div class="jst"><div class="l">ربح/خسارة اليوم</div><div class="v mono" style="color:${clr(a.dailyPL)}">${fmtUsd(a.dailyPL)}</div></div>
-    <div class="jst"><div class="l">غير محقق (مفتوح)</div><div class="v mono" style="color:${clr(st.unrealized)}">${fmtUsd(st.unrealized)}</div></div>
-    <div class="jst"><div class="l">محقق (مغلق)</div><div class="v mono" style="color:${clr(st.realized)}">${fmtUsd(st.realized)}</div><div style="font-size:11px;color:var(--dim);margin-top:2px">${st.closed} صفقة · ${st.wins} رابحة / ${st.losses} خاسرة</div></div>
-    <div class="jst"><div class="l">نقد متاح${fake}</div><div class="v mono">${fmt(a.cash)}$</div></div>
+    <div class="jst"><div class="l">حقوق الملكية${fake}</div><div class="v mono pv">${fmt(a.equity)}$</div></div>
+    <div class="jst"><div class="l">ربح/خسارة اليوم</div><div class="v mono pv" style="color:${clr(a.dailyPL)}">${fmtUsd(a.dailyPL)}</div></div>
+    <div class="jst"><div class="l">غير محقق (مفتوح)</div><div class="v mono pv" style="color:${clr(st.unrealized)}">${fmtUsd(st.unrealized)}</div></div>
+    <div class="jst"><div class="l">محقق (مغلق)</div><div class="v mono pv" style="color:${clr(st.realized)}">${fmtUsd(st.realized)}</div><div style="font-size:11px;color:var(--dim);margin-top:2px">${st.closed} صفقة · ${st.wins} رابحة / ${st.losses} خاسرة</div></div>
+    <div class="jst"><div class="l">نقد متاح${fake}</div><div class="v mono pv">${fmt(a.cash)}$</div></div>
   </div>`;
   if(a.blocked)h+=`<div class="risk-note" style="margin:0 16px 12px"><b>🛑 الحساب موقوف لدى الوسيط</b>لن تُفتح صفقات جديدة — راجع حسابك في Alpaca.</div>`;
   h+=agentPerfHtml(d.perf,d.enabled);
@@ -3440,15 +3440,15 @@ function renderAgentTrades(){
     h+=`<div class="jrow">
       <div class="jrow-left"><div class="jrow-icon open-t">🤖</div><div class="jrow-info">
         <div class="jrow-name">${esc(p.name)} <span class="mono" style="font-size:11px;color:var(--dim)">${esc(p.sym)}</span> <span class="tag p" style="margin-inline-start:6px">مفتوحة · حالي ${fmt(p.price)}</span></div>
-        <div class="jrow-detail">دخول ${fmt(p.entry)} · ${p.qty} سهم · قيمة ${fmt(p.value)}$${p.sl?` · <span style="color:var(--down)">وقف ${fmt(p.sl)}</span>`:' · <span style="color:var(--down)">⚠ بلا وقف لدى الوسيط</span>'}${p.tp?` · <span style="color:var(--up)">هدف ${fmt(p.tp)}</span>`:''}</div>
+        <div class="jrow-detail">دخول ${fmt(p.entry)} · <span class="pv">${p.qty} سهم · قيمة ${fmt(p.value)}$</span>${p.sl?` · <span style="color:var(--down)">وقف ${fmt(p.sl)}</span>`:' · <span style="color:var(--down)">⚠ بلا وقف لدى الوسيط</span>'}${p.tp?` · <span style="color:var(--up)">هدف ${fmt(p.tp)}</span>`:''}</div>
         ${pos!=null?`<div style="height:6px;background:rgba(255,107,127,.25);border-radius:99px;margin-top:7px;position:relative;max-width:260px"><i style="position:absolute;inset:0;width:${pos.toFixed(0)}%;background:linear-gradient(90deg,var(--down),var(--up));border-radius:99px"></i></div><div style="font-size:10.5px;color:var(--dim);margin-top:3px">موقع السعر بين الوقف والهدف: ${pos.toFixed(0)}٪</div>`:''}
       </div></div>
-      <div class="jrow-right"><span class="jrow-pnl mono" style="color:${clr(p.pl)}">${fmtUsd(p.pl)}</span><span class="jrow-pnlp mono" style="color:${clr(p.plPct)}">${p.plPct>=0?'+':''}${fmt(p.plPct)}%</span></div>
+      <div class="jrow-right"><span class="jrow-pnl mono pv" style="color:${clr(p.pl)}">${fmtUsd(p.pl)}</span><span class="jrow-pnlp mono" style="color:${clr(p.plPct)}">${p.plPct>=0?'+':''}${fmt(p.plPct)}%</span></div>
     </div>`;
   });
   if(d.pending.length){
     h+=`<div style="padding:12px 16px 4px;font-weight:800;font-size:13.5px">⏳ أوامر شراء معلّقة <span style="color:var(--dim);font-weight:400">(${d.pending.length})</span></div>`;
-    d.pending.forEach(o=>{h+=`<div class="jrow"><div class="jrow-left"><div class="jrow-icon open-t">⏳</div><div class="jrow-info"><div class="jrow-name">${esc(o.name)} <span class="mono" style="font-size:11px;color:var(--dim)">${esc(o.sym)}</span></div><div class="jrow-detail">${o.qty} سهم${o.limit?` · بحد ${fmt(o.limit)}$`:' · بسعر السوق'} · أُرسل ${dtShort(o.submittedAt)} · يُلغى تلقائياً إن لم يُنفَّذ خلال الدورة التالية</div></div></div></div>`;});
+    d.pending.forEach(o=>{h+=`<div class="jrow"><div class="jrow-left"><div class="jrow-icon open-t">⏳</div><div class="jrow-info"><div class="jrow-name">${esc(o.name)} <span class="mono" style="font-size:11px;color:var(--dim)">${esc(o.sym)}</span></div><div class="jrow-detail"><span class="pv">${o.qty} سهم</span>${o.limit?` · بحد ${fmt(o.limit)}$`:' · بسعر السوق'} · أُرسل ${dtShort(o.submittedAt)} · يُلغى تلقائياً إن لم يُنفَّذ خلال الدورة التالية</div></div></div></div>`;});
   }
   h+=agentOrdersHtml(d.orders);
   h+=`<div style="padding:12px 16px 4px;font-weight:800;font-size:13.5px">✅ صفقات مغلقة <span style="color:var(--dim);font-weight:400">(آخر ${d.closed.length})</span></div>`;
@@ -3458,9 +3458,9 @@ function renderAgentTrades(){
     h+=`<div class="jrow">
       <div class="jrow-left"><div class="jrow-icon cl">${t.pl>=0?'✅':'❌'}</div><div class="jrow-info">
         <div class="jrow-name">${esc(t.name)} <span class="mono" style="font-size:11px;color:var(--dim)">${esc(t.sym)}</span> <span class="tag u" style="margin-inline-start:6px">مغلقة</span></div>
-        <div class="jrow-detail">دخول ${fmt(t.entry)} → خروج ${fmt(t.exit)} · ${t.qty} سهم · ${dtShort(t.entryAt)} ← ${dtShort(t.exitAt)}</div>
+        <div class="jrow-detail">دخول ${fmt(t.entry)} → خروج ${fmt(t.exit)} · <span class="pv">${t.qty} سهم</span> · ${dtShort(t.entryAt)} ← ${dtShort(t.exitAt)}</div>
       </div></div>
-      <div class="jrow-right"><span class="jrow-pnl mono" style="color:${clr(t.pl)}">${fmtUsd(t.pl)}</span><span class="jrow-pnlp mono" style="color:${clr(t.plPct)}">${t.plPct>=0?'+':''}${fmt(t.plPct)}%</span></div>
+      <div class="jrow-right"><span class="jrow-pnl mono pv" style="color:${clr(t.pl)}">${fmtUsd(t.pl)}</span><span class="jrow-pnlp mono" style="color:${clr(t.plPct)}">${t.plPct>=0?'+':''}${fmt(t.plPct)}%</span></div>
     </div>`;
   });
   const prevOut=document.getElementById('actOut');const keepOut=prevOut?prevOut.innerHTML:'';
@@ -3507,7 +3507,7 @@ function agentOrdersHtml(list){
     const px=o.filledPrice?`نُفِّذ بسعر ${fmt(o.filledPrice)}`:(o.limit?`بحد ${fmt(o.limit)}$`:'بسعر السوق');
     h+=`<div class="jrow"><div class="jrow-left"><div class="jrow-icon open-t">${s[0]}</div><div class="jrow-info">
       <div class="jrow-name">${esc(o.name)} <span class="mono" style="font-size:11px;color:var(--dim)">${esc(o.sym)}</span> <span style="font-size:11.5px;color:${s[2]};margin-inline-start:6px">${s[1]}</span></div>
-      <div class="jrow-detail">${o.qty} سهم · ${px} · أُرسل ${dtShort(o.submittedAt)}</div>
+      <div class="jrow-detail"><span class="pv">${o.qty} سهم</span> · ${px} · أُرسل ${dtShort(o.submittedAt)}</div>
     </div></div></div>`;
   });
   return h;
@@ -3822,6 +3822,9 @@ async function shotCard(id,label,btn){
   const foot=document.createElement('div');foot.className='shot-foot';
   foot.textContent=`رصد · ${label} · ${new Date().toLocaleString('ar-SA-u-nu-latn-ca-gregory',{dateStyle:'medium',timeStyle:'short'})}`;
   el.appendChild(foot);el.classList.add('shooting');
+  // صورة صفقات الوكيل تُخفي الرصيد والمبالغ بالدولار والكميات (تبقى الأسعار والنسب)
+  const masked=id==='dAgentTrades'?[...el.querySelectorAll('.pv')].map(n=>{const t=n.textContent;n.textContent='••••';return[n,t];}):[];
+  if(masked.length)foot.textContent+=' · المبالغ مخفية';
   if(z)dash.style.zoom=''; // التصغير على الجوال يربك قياس الأبعاد في الصورة
   try{
     const blob=await lib.toBlob(el,{pixelRatio:2,backgroundColor:'#121317',filter:n=>!(n.classList&&n.classList.contains('dshot'))});
@@ -3837,7 +3840,7 @@ async function shotCard(id,label,btn){
       toast('✅ حُفظت الصورة: '+name);
     }
   }catch(e){toast('تعذّر التصوير: '+((e&&e.message)||e));}
-  finally{foot.remove();el.classList.remove('shooting');if(z){dash.style.zoom=z;}if(btn)btn.disabled=false;}
+  finally{masked.forEach(([n,t])=>{n.textContent=t;});foot.remove();el.classList.remove('shooting');if(z){dash.style.zoom=z;}if(btn)btn.disabled=false;}
 }
 document.addEventListener('click',e=>{
   const b=e.target.closest('.dshot');if(b){e.preventDefault();shotCard(b.dataset.shot,b.dataset.label,b);return;}
