@@ -578,14 +578,15 @@ body.dash #dash>.tape{grid-column:1/-1;position:sticky;top:0;z-index:40}
 .dhealth .dh-top{display:flex;align-items:center;gap:10px}
 .dgauge{width:52px;height:52px;position:relative;flex-shrink:0}
 .dgauge svg{transform:rotate(-90deg);width:52px;height:52px}
-.dgauge .gn{position:absolute;inset:0;display:grid;place-items:center;font-size:15px;font-weight:800;color:var(--sand);line-height:1}
-.dgauge .gn small{font-size:9px;color:var(--dim);font-weight:400}
+.dgauge .gn{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;line-height:1;font-size:16px;font-weight:800;color:var(--sand);line-height:1}
+.dgauge .gn small{display:block;font-size:8px;color:var(--dim);font-weight:400;direction:ltr;line-height:1}
 .dhealth b.lbl{font-size:12.5px;display:block} .dhealth .dh-top small{display:block;font-size:11px;color:var(--dim)}
 .dh-rows{display:grid;gap:3px;margin-top:7px}
-.dh-row{display:grid;grid-template-columns:78px 1fr 46px;gap:6px;align-items:center;font-size:10.5px;color:var(--dim);white-space:nowrap}
+.dh-row{display:grid;grid-template-columns:88px minmax(0,1fr) 26px;gap:8px;align-items:center;font-size:11px;color:var(--dim);white-space:nowrap}
+.dh-row>span:first-child{overflow:hidden;text-overflow:ellipsis}
 .dh-row i{display:block;height:6px;border-radius:99px;background:#15161A;overflow:hidden}
 .dh-row i b{display:block;height:100%;border-radius:99px}
-.dh-row .mono{font-size:10.5px;text-align:left}
+.dh-row .mono{font-size:11px;text-align:left;color:var(--text)}
 .dlast{font-size:11px;color:var(--dim);line-height:1.7;padding:0 4px}
 /* العمود الرئيسي */
 .dmain{grid-row:2;grid-column:2;min-width:0;padding:12px 14px 30px}
@@ -4067,7 +4068,7 @@ function renderDash(){
   const H=S.h,circ=2*Math.PI*26,off=circ*(1-S.health/100);
   const lbl=S.health>=80?'ممتازة':S.health>=65?'جيدة':S.health>=50?'متوسطة':'تحتاج انتباهاً';
   const hc=v=>v>=70?'var(--up)':v>=50?'var(--sand)':'var(--down)';
-  const hr=(l,v)=>`<div class="dh-row"><span>${l}</span><i><b style="width:${v}%;background:${hc(v)}"></b></i><span class="mono">${v}/100</span></div>`;
+  const hr=(l,v)=>`<div class="dh-row"><span>${l}</span><i><b style="width:${v}%;background:${hc(v)}"></b></i><span class="mono" title="${v} من 100">${v}</span></div>`;
   document.getElementById('dHealth').innerHTML=`<div class="dh-top"><div class="dgauge"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="none" stroke="#2B2B2B" stroke-width="6"/><circle cx="32" cy="32" r="26" fill="none" stroke="${hc(S.health)}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${off}"/></svg><div class="gn">${S.health}<small>/100</small></div></div><div><b class="lbl">الصحة العامة للمحفظة</b><small style="color:${hc(S.health)}">${lbl}</small></div></div>
     <div class="dh-rows">${hr('الأداء العام',H.perf)}${hr('إدارة المخاطر',H.risk)}${hr('تنويع المحفظة',H.div)}${hr('السيولة',H.liq)}${hr('الالتزام بالخطة',H.plan)}</div>`;
   document.getElementById('dLast').textContent=new Date().toLocaleDateString('en-GB')+' — '+new Date().toLocaleTimeString('en-GB').slice(0,5);
