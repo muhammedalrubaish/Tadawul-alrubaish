@@ -561,7 +561,7 @@ body.dash>header,body.dash>main,body.dash>.bnav,body.dash>footer,body.dash>.apib
 body.dash #dash{display:grid;grid-template-columns:250px minmax(0,1fr);min-height:100vh;min-height:100dvh}
 body.dash #dash>.tape{grid-column:1/-1;position:sticky;top:0;z-index:40}
 /* الشريط الجانبي يمين الشاشة: في RTL العمود الأول في الشبكة هو الأيمن (كان في العمود الثاني فظهر يساراً) */
-.dside{grid-row:2;grid-column:1;position:sticky;top:40px;height:calc(100vh - 40px);height:calc(var(--vh,100dvh) - 40px);display:flex;flex-direction:column;gap:6px;padding:10px 10px;border-inline-end:1px solid var(--line);background:rgba(13,14,17,.92);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);overflow-x:hidden;overflow-y:auto;scrollbar-width:thin}
+.dside{grid-row:2;grid-column:1;position:sticky;top:40px;height:calc(100vh - 40px);height:calc(var(--vh,100dvh) - 40px);display:flex;flex-direction:column;gap:6px;padding:10px 10px;border-inline-end:1px solid var(--line);background:rgba(13,14,17,.92);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);overflow-x:hidden;overflow-y:auto}
 .dside .logo{padding:2px 6px 8px;border-bottom:1px solid var(--line);margin-bottom:2px}
 .dside .logo-mark{width:34px;height:34px}
 .dside .logo h1{font-size:19px} .dside .logo small{font-size:10.5px}
@@ -797,7 +797,7 @@ body.dash .dtop5 .sy{background:rgba(245,165,36,.14);color:var(--sand)}
 #dash.dfit #dNotesCard{grid-area:4/10/5/13}
 #dash.dfit .dcard{min-height:0;overflow:hidden}
 #dash.dfit .dcard>.dhd{padding:8px 12px}
-#dash.dfit .dcard>.dbody,#dash.dfit .dcard>.dtable{flex:1 1 0;min-height:0;overflow:auto;max-height:none;scrollbar-width:thin}
+#dash.dfit .dcard>.dbody,#dash.dfit .dcard>.dtable{flex:1 1 0;min-height:0;overflow:auto;max-height:none}
 #dash.dfit .dbody{padding:10px 12px}
 #dash.dfit .dach,#dash.dfit .dnotes{max-height:none}
 #dash.dfit .dnotes{grid-template-columns:1fr;padding:2px 6px}
@@ -810,6 +810,21 @@ body.dash .dtop5 .sy{background:rgba(245,165,36,.14);color:var(--sand)}
 #dash.dfit #dChalCard>.dbody{padding-bottom:5px} #dash.dfit .dcnt{gap:5px} #dash.dfit .dcnt div{padding:5px 9px}
 #dash.dfit #dChalCard .dbody>div[style]{margin-top:8px!important;padding-top:8px!important}
 #dash.dfit .dgoal{gap:8px} #dash.dfit .dgoal .g1{padding:0} #dash.dfit .dgoal .g1 .v{font-size:23px}
+/* ===== شريط تمرير أنيق: نحيف مستدير بلا أسهم، شفاف حتى تمرّ عليه ثم يبرز باللون المميز =====
+   ملاحظة: لا يُضبط scrollbar-width/scrollbar-color في كروم/برايف لأنهما يلغيان تنسيق ::-webkit-scrollbar */
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-track,::-webkit-scrollbar-corner{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.13);border-radius:99px;border:2px solid transparent;background-clip:padding-box;min-height:36px}
+::-webkit-scrollbar-thumb:hover{background:var(--sand);background-clip:padding-box}
+::-webkit-scrollbar-thumb:active{background:var(--sand);background-clip:padding-box;border-width:1px}
+::-webkit-scrollbar-button{display:none;width:0;height:0}
+/* داخل البطاقات أنحف، والمقبض يظهر خافتاً ويشتد عند المرور على البطاقة */
+.dcard ::-webkit-scrollbar,.dside::-webkit-scrollbar,.dcard>.dbody::-webkit-scrollbar,.dcard>.dtable::-webkit-scrollbar{width:7px;height:7px}
+.dcard ::-webkit-scrollbar-thumb,.dcard>.dbody::-webkit-scrollbar-thumb,.dcard>.dtable::-webkit-scrollbar-thumb,.dside::-webkit-scrollbar-thumb{background:rgba(255,255,255,.07);background-clip:padding-box}
+.dcard:hover ::-webkit-scrollbar-thumb,.dcard:hover>.dbody::-webkit-scrollbar-thumb,.dcard:hover>.dtable::-webkit-scrollbar-thumb,.dside:hover::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);background-clip:padding-box}
+.dcard ::-webkit-scrollbar-thumb:hover,.dcard>.dbody::-webkit-scrollbar-thumb:hover,.dcard>.dtable::-webkit-scrollbar-thumb:hover,.dside::-webkit-scrollbar-thumb:hover{background:var(--sand);background-clip:padding-box}
+/* فايرفوكس (لا يدعم ::-webkit-scrollbar) */
+@supports not selector(::-webkit-scrollbar){*{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.18) transparent}}
 </style>
 </head>
 <body>
