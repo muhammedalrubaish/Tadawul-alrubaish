@@ -703,7 +703,18 @@ body.dash #dash>.tape{grid-column:1/-1;position:sticky;top:0;z-index:40}
 .dslot.tall{max-height:640px;overflow:auto}
 .dslot .sg{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
 .dslot .glance-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
-body.dash #aiFab,body.dash #aiPanel{bottom:calc(20px + env(safe-area-inset-bottom,0px))}
+/* زر المساعد عائم قابل للسحب؛ افتراضياً في الزاوية اليمنى السفلى (فوق ذيل القائمة الجانبية الفارغ) */
+#aiFab{touch-action:none;-webkit-user-select:none;user-select:none}
+#aiFab.drag{transition:none;cursor:grabbing;box-shadow:0 16px 36px rgba(0,0,0,.65)}
+body.dash #aiFab{inset-inline-end:auto;right:22px;bottom:calc(18px + env(safe-area-inset-bottom,0px));cursor:grab}
+body.dash .dside{padding-bottom:80px}
+/* لوحة التحكم: نافذة محادثة عائمة بجوار الزر، بلا تعتيم للصفحة، تُسحب من رأسها، والزر يبقى ظاهراً (✕) */
+body.dash #aiBackdrop{display:none}
+body.dash #aiPanel{inset-inline-end:auto;right:auto;bottom:auto}
+body.dash #aiPanel.drag{transition:none}
+body.dash #aiFab.on{transform:none;opacity:1;pointer-events:auto}
+body.dash #aiFab{z-index:72} /* فوق النافذة كي يبقى زر الإغلاق ظاهراً حتى لو سُحبت النافذة فوقه */
+body.dash .aihead{cursor:move;touch-action:none;-webkit-user-select:none;user-select:none}
 body.dash .disc{margin:0 0 12px}
 body.dash #dashFootSlot footer{border-top:1px solid var(--line);margin-top:18px;padding:16px 0 0}
 body.dash .toast{bottom:22px}
@@ -3394,6 +3405,7 @@ function aiFitViewport(){
   const kb=open&&vv.height<window.innerHeight-120;
   aiPanel.classList.toggle('kb',kb);
   if(kb){aiPanel.style.top=(vv.offsetTop+8)+'px';aiPanel.style.height=(vv.height-16)+'px';aiPanel.style.maxHeight='none';}
+  else if(aiFloat()){if(open)aiPlacePanel();}
   else{aiPanel.style.top='';aiPanel.style.height='';aiPanel.style.maxHeight='';}
 }
 if(window.visualViewport){window.visualViewport.addEventListener('resize',aiFitViewport);window.visualViewport.addEventListener('scroll',aiFitViewport);}
@@ -3406,14 +3418,83 @@ function aiSetOpen(on){
   aiPanel.classList.toggle('open',on);aiBackdrop.classList.toggle('on',on);
   aiFab.classList.toggle('on',on);aiFab.textContent=on?'✕':'✦';aiFab.setAttribute('aria-expanded',String(on));
 }
-function aiClosePanel(){if(!aiPanel.classList.contains('open'))return;aiIn.blur();aiSetOpen(false);aiFitViewport();aiLock(false);}
+function aiClosePanel(){if(!aiPanel.classList.contains('open'))return;aiIn.blur();aiSetOpen(false);aiFitViewport();if(!aiFloat())aiLock(false);}
 function aiOpenPanel(){
   if(!aiMsgs.childElementCount){aiBubble('b','هلا والله 👋 أنا مساعد رصد — أجاوبك بالأسعار الحية للسوقين وأراجع صفقاتك.\n💡 اختر رداً سريعاً أو اكتب سؤالك');aiQuick(['وش أفضل فرصة اليوم؟','حلل سهم أرامكو','راجع محفظتي']);}
-  aiLock(true);aiSetOpen(true);
+  if(aiFloat())aiPlacePanel();else aiLock(true);
+  aiSetOpen(true);
   aiMsgs.scrollTop=aiMsgs.scrollHeight;
   // لا تركيز تلقائي على حقل السؤال: لوحة المفاتيح تظهر فقط عندما يضغط المستخدم الحقل بنفسه
 }
-aiFab.addEventListener('click',()=>{aiPanel.classList.contains('open')?aiClosePanel():aiOpenPanel();});
+aiFab.addEventListener('click',()=>{if(fabMoved){fabMoved=false;return;}aiPanel.classList.contains('open')?aiClosePanel():aiOpenPanel();});
+
+/* ===== زر عائم قابل للسحب + نافذة محادثة عائمة (لوحة التحكم) =====
+   الموضع يُحفظ نسبةً من الشاشة لكل بوابة، ويُصحَّح عند تغيّر المقاس. السحب لا يُحسب نقرة */
+const aiFloat=()=>DASH;
+const fabKey=()=>'rasad_fab_'+(DASH?'dash':'app');
+let fabDrag=null,fabMoved=false;
+function fabSet(x,y){
+  const w=aiFab.offsetWidth||54,h=aiFab.offsetHeight||54;
+  x=Math.min(Math.max(8,x),innerWidth-w-8);y=Math.min(Math.max(8,y),innerHeight-h-8);
+  // بلا insetInlineEnd: في RTL يُترجَم إلى left فيمحو الموضع
+  Object.assign(aiFab.style,{right:'auto',bottom:'auto',left:x+'px',top:y+'px'});
+}
+function fabRestore(){
+  let p=null;try{p=JSON.parse(localStorage.getItem(fabKey())||'null');}catch(e){}
+  if(p&&Number.isFinite(p.x)&&Number.isFinite(p.y))fabSet(p.x*innerWidth,p.y*innerHeight);
+}
+aiFab.addEventListener('pointerdown',e=>{
+  if(e.button!==0)return;
+  const r=aiFab.getBoundingClientRect();
+  fabDrag={dx:e.clientX-r.left,dy:e.clientY-r.top,sx:e.clientX,sy:e.clientY};fabMoved=false;
+  try{aiFab.setPointerCapture(e.pointerId);}catch(_){}
+});
+aiFab.addEventListener('pointermove',e=>{
+  if(!fabDrag)return;
+  if(!fabMoved){if(Math.hypot(e.clientX-fabDrag.sx,e.clientY-fabDrag.sy)<6)return;fabMoved=true;aiFab.classList.add('drag');}
+  fabSet(e.clientX-fabDrag.dx,e.clientY-fabDrag.dy);
+  if(aiFloat()&&aiPanel.classList.contains('open'))aiPlacePanel();
+});
+const fabEnd=()=>{
+  if(!fabDrag)return;fabDrag=null;
+  if(!fabMoved)return;
+  aiFab.classList.remove('drag');
+  // من style لا من getBoundingClientRect: تصغير :active يزيح القياس بضع بكسلات
+  try{localStorage.setItem(fabKey(),JSON.stringify({x:parseFloat(aiFab.style.left)/innerWidth,y:parseFloat(aiFab.style.top)/innerHeight}));}catch(_){}
+};
+aiFab.addEventListener('pointerup',fabEnd);aiFab.addEventListener('pointercancel',fabEnd);
+// النافذة بجوار الزر: فوقه إن كان في النصف السفلي وإلا تحته، ومحاذية لجهته الأفقية
+function aiPlacePanel(){
+  if(!aiFloat())return;
+  const f=aiFab.getBoundingClientRect(),W=innerWidth,H=innerHeight,m=12,gap=10;
+  const w=Math.min(410,W-2*m),rightSide=f.left+f.width/2>W/2,below=f.top+f.height/2<H/2;
+  const avail=below?H-f.bottom-gap-m:f.top-gap-m;
+  const h=Math.round(Math.max(280,Math.min(560,H*.72,avail)));
+  let left=rightSide?f.right-w:f.left,top=below?f.bottom+gap:f.top-gap-h;
+  left=Math.min(Math.max(m,left),W-w-m);top=Math.min(Math.max(m,top),H-h-m);
+  Object.assign(aiPanel.style,{left:left+'px',top:top+'px',width:w+'px',height:h+'px',maxHeight:'none'});
+  aiPanel.style.transformOrigin=(below?'top ':'bottom ')+(rightSide?'right':'left');
+}
+// سحب النافذة من رأسها (عدا زر الإغلاق)
+(()=>{
+  const head=aiPanel.querySelector('.aihead');if(!head)return;
+  let d=null;
+  head.addEventListener('pointerdown',e=>{
+    if(!aiFloat()||e.button!==0||e.target.closest('button'))return;
+    const r=aiPanel.getBoundingClientRect();d={dx:e.clientX-r.left,dy:e.clientY-r.top};
+    try{head.setPointerCapture(e.pointerId);}catch(_){}
+    aiPanel.classList.add('drag');
+  });
+  head.addEventListener('pointermove',e=>{
+    if(!d)return;
+    const r=aiPanel.getBoundingClientRect();
+    aiPanel.style.left=Math.min(Math.max(8,e.clientX-d.dx),innerWidth-r.width-8)+'px';
+    aiPanel.style.top=Math.min(Math.max(8,e.clientY-d.dy),innerHeight-r.height-8)+'px';
+  });
+  const end=()=>{d=null;aiPanel.classList.remove('drag');};
+  head.addEventListener('pointerup',end);head.addEventListener('pointercancel',end);
+})();
+window.addEventListener('resize',()=>{fabRestore();if(aiFloat()&&aiPanel.classList.contains('open'))aiPlacePanel();});
 aiBackdrop.addEventListener('click',aiClosePanel);
 document.addEventListener('keydown',e=>{if(e.key==='Escape')aiClosePanel();});
 document.getElementById('aiClose').addEventListener('click',aiClosePanel);
@@ -3792,6 +3873,7 @@ function enterPortal(p){
     try{if(screen.orientation&&screen.orientation.lock){screen.orientation.lock('landscape').catch(()=>{});}}catch(e){}
     if(!DASH)enterDash();
   }else if(DASH){location.reload();}
+  fabRestore();
 }
 // تبديل البوابة أو الخروج: إعادة تحميل كي تُبنى الواجهة من جديد بلا نقل عكسي للأقسام
 function gateSwitchPortal(){ss.del(PORTAL_KEY);ls.del(PORTAL_KEY);history.replaceState(null,'',location.pathname+location.search);location.reload();}
