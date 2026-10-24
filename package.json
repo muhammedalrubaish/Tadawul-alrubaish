@@ -3,6 +3,7 @@
   "private": true,
   "description": "رصد — مساعد قرار التداول",
   "dependencies": {
-    "@anthropic-ai/sdk": "latest"
+    "@anthropic-ai/sdk": "latest",
+    "@vercel/blob": "^2.8.2"
   }
 }
