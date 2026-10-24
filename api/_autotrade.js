@@ -4,6 +4,7 @@
 // وضعان: «ai» يقرر الذكاء الاصطناعي (DeepSeek أو Claude) من قائمة مرشّحين — الافتراضي عند وجود مفتاح · «rules» معادلة الدرجة فقط
 const broker = require('./_broker');
 const ai = require('./_ai');
+const decisions = require('./_decisions');
 const { plan, esc } = require('./_market');
 const SECTORS = require('./_sectors');
 
@@ -30,6 +31,11 @@ const cfg = () => {
 };
 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+
+// معرّف أمر ثابت لليوم (بتوقيت نيويورك) والرمز فقط — بلا ثقة أو أي قيمة متغيرة، كي يتطابق بين دورتين متزامنتين
+const orderIdFor = (sym, t = Date.now()) => `rasad-${broker.nyDay(t).replace(/-/g, '')}-${sym}`;
+// رفض Alpaca لمعرّف مكرر = دورة أخرى أرسلت الأمر نفسه قبلنا
+const isDuplicateId = e => /client_order_id/i.test(String(e && e.message)) && /unique|exist|duplicate/i.test(String(e && e.message));
 
 // تحويل قرار الوكيل إلى خطة أسعار مُتحقَّق منها ضمن الحدود (وقف 2–8٪ · هدف 3–20٪ · هدف ≥ 1.5× الوقف)
 function planFromDecision(price, d) {
@@ -113,19 +119,32 @@ async function runCycle(list, { dry = false } = {}) {
     }
   }
 
-  const executed = [], failed = [], closed = [];
+  // أوامر شراء اليوم بكل حالاتها: رمز اشتُري اليوم (حتى لو خرج بوقف أو أُلغي أمره) لا يُشترى مرة ثانية
+  const boughtToday = picks.length ? new Set((await broker.getTodayBuyOrders()).map(o => o.symbol)) : new Set();
+  const executed = [], failed = [], closed = [], dupes = [], logErrors = [];
   for (const p of picks) {
     const s = p.s;
+    if (boughtToday.has(s.sym)) { dupes.push({ sym: s.sym, reason: 'يوجد أمر شراء لهذا الرمز اليوم' }); continue; }
     const limit = s.price * (1 + c.maxSlippagePct / 100);
     const qty = Math.floor(c.maxPositionUsd / limit);
     if (qty < 1) { failed.push({ sym: s.sym, error: 'سعر السهم أعلى من الحد الأقصى للصفقة (AUTOTRADE_MAX_POSITION_USD)' }); continue; }
-    const rec = { sym: s.sym, name: s.name, qty, price: s.price, limit: +limit.toFixed(2), tp: p.tp1, sl: p.sl, score: s.score, confidence: p.confidence, reason: p.reason };
+    const clientOrderId = orderIdFor(s.sym);
+    const rec = { sym: s.sym, name: s.name, qty, price: s.price, limit: +limit.toFixed(2), tp: p.tp1, sl: p.sl, score: s.score, confidence: p.confidence, reason: p.reason, clientOrderId };
     if (dry) { executed.push(rec); continue; }
     try {
-      const order = await broker.submitBracketOrder({ symbol: s.sym, qty, tp: p.tp1, sl: p.sl, limit });
+      const order = await broker.submitBracketOrder({ symbol: s.sym, qty, tp: p.tp1, sl: p.sl, limit, clientOrderId });
       executed.push({ ...rec, orderId: order.id });
+      // سجل القرار ثانوي: فشله لا يلغي الأمر المُرسل، بل يُبلَّغ في تيليجرام
+      try {
+        await decisions.saveDecision({
+          client_order_id: clientOrderId, order_id: order.id, sym: s.sym, mode: c.mode, confidence: p.confidence,
+          stop_loss_pct: +((1 - p.sl / s.price) * 100).toFixed(2), take_profit_pct: +((p.tp1 / s.price - 1) * 100).toFixed(2),
+          reason: p.reason, at: new Date().toISOString()
+        });
+      } catch (e) { logErrors.push({ sym: s.sym, error: String((e && e.message) || e) }); }
     } catch (e) {
-      failed.push({ sym: s.sym, error: e.message });
+      if (isDuplicateId(e)) dupes.push({ sym: s.sym, reason: `رفض Alpaca معرّفاً مكرراً (${clientOrderId}) — دورة أخرى أرسلته` });
+      else failed.push({ sym: s.sym, error: e.message });
     }
   }
   for (const cl of closes) {
@@ -134,8 +153,8 @@ async function runCycle(list, { dry = false } = {}) {
     catch (e) { failed.push({ sym: cl.sym, error: 'إغلاق: ' + e.message }); }
   }
   return {
-    ok: true, dry, mode: c.mode, brain: ai.providerLabel(), paper: broker.PAPER, marketView, executed, closed, failed, cancelled,
-    considered: aiDecisions.filter(d => !(d.action === 'buy' && executed.some(e => e.sym === d.sym)) && !(d.action === 'close' && closed.some(x => x.sym === d.sym))).slice(0, 8),
+    ok: true, dry, mode: c.mode, brain: ai.providerLabel(), paper: broker.PAPER, marketView, executed, closed, failed, cancelled, dupes, logErrors,
+    considered: aiDecisions.filter(d => !(d.action === 'buy' && (executed.some(e => e.sym === d.sym) || dupes.some(x => x.sym === d.sym))) && !(d.action === 'close' && closed.some(x => x.sym === d.sym))).slice(0, 8),
     dailyPL: +dailyPL.toFixed(2), budget
   };
 }
@@ -157,10 +176,12 @@ function fmtCycle(r) {
   if (r.considered && r.considered.length) {
     lines.push('', '<b>مرشّحون استُبعدوا:</b>', ...r.considered.map(d => `• <code>${esc(d.sym)}</code> (${esc(d.action)} · ثقة ${d.confidence}) — ${esc(String(d.reason || '').slice(0, 160))}`));
   }
+  if (r.dupes && r.dupes.length) lines.push(...r.dupes.map(x => `⏭️ ${r.dry ? 'كان سيتخطّى' : 'تخطّي'} <code>${esc(x.sym)}</code> — ${esc(x.reason)}`));
   if (r.cancelled && r.cancelled.length) lines.push(`↩️ ${r.dry ? 'كانت ستُلغى' : 'أُلغيت'} أوامر شراء قديمة لم تُنفَّذ: ${r.cancelled.map(esc).join('، ')}`);
   if (r.failed && r.failed.length) lines.push(...r.failed.map(f => `⚠️ فشل ${esc(f.sym)}: ${esc(f.error)}`));
+  if (r.logErrors && r.logErrors.length) lines.push(...r.logErrors.map(f => `📝 الأمر أُرسل لكن سجل القرار لم يُحفظ (${esc(f.sym)}): ${esc(f.error)}`));
   lines.push(`ربح/خسارة اليوم: ${r.dailyPL >= 0 ? '+' : ''}${r.dailyPL}$`);
   return lines.join('\n');
 }
 
-module.exports = { runCycle, fmtCycle, cfg };
+module.exports = { runCycle, fmtCycle, cfg, orderIdFor };
