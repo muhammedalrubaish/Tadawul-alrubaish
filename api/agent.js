@@ -65,6 +65,14 @@ module.exports = async (req, res) => {
       }
     }
 
+    // فحص كل دورة: أي مركز مفتوح بلا وقف فعلي لدى الوسيط → تنبيه (حتى لو تُخطّيت دورة الشراء نفسها)
+    // قبل التعليق الاختياري كي لا تقطعه مهلة الدالة
+    let stopMsg = null;
+    if (market === 'us') {
+      try { stopMsg = await autotrade.stopAlert(); }
+      catch (e) { stopMsg = '⚠️ تعذّر فحص أوامر الوقف للمراكز المفتوحة: ' + esc(String(e.message || e)); }
+    }
+
     let msgText = `📬 <b>ملخص وكيل رصد اليومي</b>\n\n` + fmtOpps(market, list);
 
     // تعليق ذكي مقتضب إن كان المفتاح مفعّلاً (اختياري — يتجاوز الفشل بصمت)
@@ -87,6 +95,7 @@ module.exports = async (req, res) => {
 
     await send(CHAT, msgText);
     if (tradeMsg) await send(CHAT, tradeMsg);
+    if (stopMsg) await send(CHAT, stopMsg);
 
     return res.status(200).json({ ok: true, market, scanned: list.length, trade });
   } catch (e) {

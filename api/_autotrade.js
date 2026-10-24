@@ -184,4 +184,15 @@ function fmtCycle(r) {
   return lines.join('\n');
 }
 
-module.exports = { runCycle, fmtCycle, cfg, orderIdFor };
+// فحص كل دورة: مركز مفتوح بلا رجل وقف حيّة لدى الوسيط = مكشوف لفجوة نازلة. تنبيه فقط، بلا أي أمر تلقائي
+// يعيد نص رسالة تيليجرام أو null إن كانت كل المراكز محمية
+async function stopAlert() {
+  if (!broker.hasKeys()) return null;
+  const bare = await broker.getUnprotectedPositions();
+  if (!bare.length) return null;
+  return `🚨 <b>${bare.length === 1 ? 'مركز مفتوح' : bare.length + ' مراكز مفتوحة'} بلا وقف لدى الوسيط</b> ${broker.PAPER ? '(حساب تجريبي 🧪)' : '(حساب حقيقي 💰)'}\n` +
+    bare.map(p => `• <code>${esc(p.symbol)}</code> — ${+p.qty} سهم · دخول ${(+p.avg_entry_price).toFixed(2)} · حالي ${(+p.current_price).toFixed(2)}`).join('\n') +
+    `\nلم يُرسل أي أمر تلقائياً. راجع الأوامر في Alpaca، أو أرسل «أوقف الكل» للإغلاق الطارئ.`;
+}
+
+module.exports = { runCycle, fmtCycle, cfg, orderIdFor, stopAlert };
