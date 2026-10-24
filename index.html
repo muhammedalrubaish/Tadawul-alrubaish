@@ -3563,7 +3563,7 @@ function renderAgentTrades(){
     <div class="jst"><div class="l">نقد متاح${fake}</div><div class="v mono pv">${fmt(a.cash)}$</div></div>
   </div>`;
   if(a.blocked)h+=`<div class="risk-note" style="margin:0 16px 12px"><b>🛑 الحساب موقوف لدى الوسيط</b>لن تُفتح صفقات جديدة — راجع حسابك في Alpaca.</div>`;
-  h+=agentPerfHtml(d.perf,d.enabled);
+  h+=agentPerfHtml(d.perf,d.enabled,d.periods);
   h+=agentActivationHtml(d);
   // المراكز المفتوحة مع موقع السعر بين الوقف والهدف
   h+=`<div style="padding:12px 16px 4px;font-weight:800;font-size:13.5px">📌 مراكز مفتوحة <span style="color:var(--dim);font-weight:400">(${d.positions.length})</span></div>`;
@@ -3586,13 +3586,31 @@ function renderAgentTrades(){
   }
   h+=agentOrdersHtml(d.orders);
   h+=`<div style="padding:12px 16px 4px;font-weight:800;font-size:13.5px">✅ صفقات مغلقة <span style="color:var(--dim);font-weight:400">(آخر ${d.closed.length})</span></div>`;
+  if(d.fillsIncomplete)h+=`<div class="calc-note" style="margin:0 16px 6px;color:var(--sand)">⚠️ السجل غير مكتمل: عُرضت آخر 500 عملية تنفيذ فقط، والصفقات الأقدم قد تنقص من القائمة والإحصاءات.</div>`;
+  if(d.planError)h+=`<div class="calc-note" style="margin:0 16px 6px;color:var(--sand)">⚠️ ${esc(d.planError)}</div>`;
+  const ms=d.measure;
+  if(ms&&ms.n){
+    const fromM=d.measureFrom?new Date(d.measureFrom).toLocaleDateString('ar',{day:'numeric',month:'long'}):'';
+    h+=`<div class="calc-note" style="margin:0 16px 6px">📏 <b>القياس منذ ${fromM}</b> (${ms.n} صفقة): خروج بالوقف ${ms.stopExits} · متوسط الانزلاق عند الوقف <b class="mono" style="color:${(ms.avgSlipStop||0)<0?'var(--down)':'inherit'}">${ms.avgSlipStop==null?'—':(ms.avgSlipStop>0?'+':'')+fmt(ms.avgSlipStop)+'٪'}</b> · خروج في أول 30 دقيقة من الجلسة ${ms.openExits}<br><small style="color:var(--dim)">الانزلاق = سعر الخروج ÷ الوقف المخطط − 1. السالب يعني أن السعر خرج تحت الوقف (فجوة أو تنفيذ متأخر).</small></div>`;
+  }
   if(d.fillsError)h+=`<div class="empty" style="padding:14px;color:var(--sand)">⚠️ تعذّر جلب سجل الصفقات المغلقة: ${esc(d.fillsError)}</div>`;
   else if(!d.closed.length)h+=`<div class="empty" style="padding:14px">لا صفقات مغلقة بعد</div>`;
+  const XT={stop:['🛑','وقف','var(--down)'],target:['🎯','هدف','var(--up)'],manual:['✋','يدوي','var(--sand)']};
   d.closed.forEach(t=>{
+    const xt=XT[t.exitType];
+    const m=[];
+    if(t.plannedSl!=null)m.push(`<span style="color:var(--down)">وقف مخطط ${fmt(t.plannedSl)}</span>`);
+    if(t.plannedTp!=null)m.push(`<span style="color:var(--up)">هدف مخطط ${fmt(t.plannedTp)}</span>`);
+    if(xt)m.push(`<span style="color:${xt[2]}">${xt[0]} خروج: ${xt[1]}</span>`);
+    if(t.slippagePct!=null)m.push(`انزلاق <span class="mono" style="color:${t.slippagePct<0?'var(--down)':'inherit'}">${t.slippagePct>0?'+':''}${fmt(t.slippagePct)}٪</span>`);
+    if(t.holdDays!=null)m.push(`احتفاظ ${fmt(t.holdDays)} يوم`);
+    if(t.openExit)m.push('⏰ عند الافتتاح');
+    if(t.confidence!=null)m.push(`ثقة ${t.confidence}`);
     h+=`<div class="jrow">
       <div class="jrow-left"><div class="jrow-icon cl">${t.pl>=0?'✅':'❌'}</div><div class="jrow-info">
         <div class="jrow-name">${esc(t.name)} <span class="mono" style="font-size:11px;color:var(--dim)">${esc(t.sym)}</span> <span class="tag u" style="margin-inline-start:6px">مغلقة</span></div>
         <div class="jrow-detail">دخول ${fmt(t.entry)} → خروج ${fmt(t.exit)} · <span class="pv">${t.qty} سهم</span> · ${dtShort(t.entryAt)} ← ${dtShort(t.exitAt)}</div>
+        ${m.length?`<div class="jrow-detail" style="margin-top:2px">${m.join(' · ')}</div>`:''}
       </div></div>
       <div class="jrow-right"><span class="jrow-pnl mono pv" style="color:${clr(t.pl)}">${fmtUsd(t.pl)}</span><span class="jrow-pnlp mono" style="color:${clr(t.plPct)}">${t.plPct>=0?'+':''}${fmt(t.plPct)}%</span></div>
     </div>`;
@@ -3647,9 +3665,26 @@ function agentOrdersHtml(list){
   return h;
 }
 
+/* ===== مقارنة الفترات: كل تغيير في منطق الوكيل فترة مستقلة تُقارن بالتي قبلها ===== */
+function periodsHtml(periods){
+  if(!periods||periods.length<2)return'';
+  const pct=v=>v==null?'—':(v>=0?'+':'')+fmt(v)+'٪',usd=v=>v==null?'—':(v>=0?'+':'')+fmt(v)+'$';
+  const pf=v=>v==null?'—':v==='inf'?'بلا خسائر':fmt(v);
+  const rows=[['صفقات مغلقة',x=>x.closed],['نسبة الربح',x=>x.winRate==null?'—':x.winRate+'٪'],['متوسط الصفقة',x=>pct(x.avgRet)],['العائد المرجّح بالحجم',x=>pct(x.weightedRet)],
+    ['متوسط الصفقة بالدولار',x=>usd(x.avgPl)],['التفوق على السوق',x=>pct(x.avgAlpha)],['معامل الربح',x=>pf(x.profitFactor)],
+    ['انزلاق الوقف',x=>x.measure&&x.measure.avgSlipStop!=null?pct(x.measure.avgSlipStop):'—'],['خروج عند الافتتاح',x=>x.measure?x.measure.openExits:'—']];
+  const d=s=>s?new Date(s).toLocaleDateString('ar',{day:'numeric',month:'short'}):'الآن';
+  return`<div style="font-weight:800;font-size:12.5px;margin:10px 0 4px">🔁 الفترات جنباً إلى جنب</div>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">
+      <tr><th style="text-align:start;padding:4px"></th>${periods.map(x=>`<th style="text-align:start;padding:4px">${esc(x.label)}<br><small style="color:var(--dim);font-weight:400">${d(x.from)} ← ${d(x.to)}</small></th>`).join('')}</tr>
+      ${rows.map(([l,f])=>`<tr style="border-top:1px dashed var(--line)"><td style="padding:4px;color:var(--dim)">${l}</td>${periods.map(x=>`<td class="mono" style="padding:4px">${f(x.perf)}</td>`).join('')}</tr>`).join('')}
+    </table></div>`;
+}
+
 /* ===== تقرير الفعالية: تجربة الشهر بمعايير محددة مسبقاً ===== */
-function agentPerfHtml(p,enabled){
+function agentPerfHtml(p,enabled,periods){
   if(!p)return'';
+  const usd=v=>v==null?'—':(v>=0?'+':'')+fmt(v)+'$';
   const minT=p.minTrades||10;
   const V={
     not_started:['⏳','لم تبدأ التجربة بعد',enabled?'تبدأ تلقائياً مع أول صفقة يشتريها الوكيل.':'فعّل التداول التجريبي (AUTOTRADE_ENABLED) لتبدأ مع أول صفقة.','u'],
@@ -3676,7 +3711,10 @@ function agentPerfHtml(p,enabled){
       <div><small>متوسط الصفقة</small><b style="color:${(p.avgRet||0)>=0?'var(--up)':'var(--down)'}">${pct(p.avgRet)}</b></div>
       <div><small>السوق لنفس الأيام</small><b>${pct(p.avgSpy)}</b></div>
       <div><small>التفوق على السوق</small><b style="color:${(p.avgAlpha||0)>=0?'var(--up)':'var(--down)'}">${pct(p.avgAlpha)}</b></div>
+      <div><small>متوسط الصفقة بالدولار</small><b style="color:${(p.avgPl||0)>=0?'var(--up)':'var(--down)'}">${usd(p.avgPl)}</b></div>
+      <div><small>العائد المرجّح بالحجم</small><b style="color:${(p.weightedRet||0)>=0?'var(--up)':'var(--down)'}">${pct(p.weightedRet)}</b></div>
     </div>
+    ${periodsHtml(periods)}
     <div class="perf-verdict ${V[3]}"><b>${V[0]} ${V[1]}</b>${V[2]}</div>
     <div style="font-weight:800;font-size:12.5px;margin:10px 0 2px">المعايير (محددة قبل البدء كي لا تُفصَّل على النتيجة)</div>
     ${rows}

@@ -12,4 +12,21 @@ async function saveDecision(rec) {
   });
 }
 
-module.exports = { saveDecision, hasStore };
+// قراءة سجلات قرارات بمعرّفاتها → { client_order_id: سجل } — المعرّفات القديمة (قبل المرحلة 0) عشوائية فتُتجاوز
+// ثانوي: أي فشل أو بطء يعيد ما تيسّر بلا أن يُسقط صفحة الصفقات
+async function readDecisions(ids, timeoutMs = 5000) {
+  const out = {};
+  const want = [...new Set((ids || []).filter(id => /^rasad-\d{8}-[A-Z0-9.\-]+$/.test(String(id))))];
+  if (!hasStore() || !want.length) return out;
+  const { get } = require('@vercel/blob');
+  const one = async id => {
+    try {
+      const r = await get(`decisions/${id}.json`, { access: 'private', token: TOKEN });
+      if (r && r.stream) out[id] = JSON.parse(await new Response(r.stream).text());
+    } catch (_) { /* سجل ناقص لا يمنع غيره */ }
+  };
+  await Promise.race([Promise.all(want.map(one)), new Promise(res => setTimeout(res, timeoutMs))]);
+  return out;
+}
+
+module.exports = { saveDecision, readDecisions, hasStore };
