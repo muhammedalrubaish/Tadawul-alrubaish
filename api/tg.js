@@ -15,6 +15,7 @@ const HELP = `👋 أهلاً! أنا <b>وكيل رصد</b> — أراقب ال
 • <b>حالة التداول</b> — حساب Alpaca والصفقات المفتوحة (إن كان التداول الآلي مضبوطاً)
 • <b>رأي الوكيل</b> — معاينة ما سيشتريه الذكاء الاصطناعي الآن (بلا تنفيذ)
 • <b>تداول الآن</b> — تشغيل دورة التداول الآلي فوراً (تنفيذ فعلي إن كان مفعّلاً)
+• <b>فحص التكرار</b> — هل الصفقات المكررة في السجل شراء مكرر أم بيع على دفعات (للقراءة فقط)
 • <b>أوقف الكل</b> — إغلاق طارئ فوري لكل صفقات التداول الآلي المفتوحة
 
 وأرسل لك تلقائياً ملخص الفرص قبل افتتاح كل سوق يومياً 📬`;
@@ -110,6 +111,18 @@ module.exports = async (req, res) => {
         const r = await autotrade.runCycle(list, { dry: dryM });
         await send(chatId, autotrade.fmtCycle(r));
       } catch (e) { await send(chatId, '⚠️ تعذّرت الدورة (لم يُنفَّذ أي أمر): ' + esc(e.message)); }
+      return done();
+    }
+
+    // «فحص التكرار [رمز] [يوم,يوم]» — للقراءة فقط: هل الصفوف المكررة من شراء مكرر أم بيع على دفعات؟
+    const dupM = text.match(/^\/?(?:فحص التكرار|dupcheck)(?:\s+([A-Za-z.\-]{1,7}))?(?:\s+([0-9,\-\s]+))?$/i);
+    if (dupM) {
+      if (!broker.hasKeys()) { await send(chatId, 'التداول الآلي غير مضبوط — أضف <b>ALPACA_KEY</b> و<b>ALPACA_SECRET</b> في إعدادات Vercel.'); return done(); }
+      const days = dupM[2] ? dupM[2].split(/[,\s]+/).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d)) : undefined;
+      try {
+        const out = await require('./_dupcheck').checkDuplicates(dupM[1] || 'SMCI', days && days.length ? days : undefined);
+        await send(chatId, out.length > 4000 ? out.slice(0, 4000) + '\n…' : out);
+      } catch (e) { await send(chatId, '⚠️ تعذّر الفحص: ' + esc(e.message)); }
       return done();
     }
 

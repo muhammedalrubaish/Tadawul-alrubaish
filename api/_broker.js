@@ -83,12 +83,29 @@ async function getRecentBuyOrders(days = 30) {
   return (orders || []).filter(o => o.side === 'buy');
 }
 
+// أوامر رمز واحد بكل حالاتها مع أرجل bracket (الوقف والهدف) بين تاريخين
+const getSymbolOrders = (symbol, after, until) =>
+  api('GET', `/v2/orders?status=all&symbols=${encodeURIComponent(symbol)}&nested=true&direction=asc&limit=500&after=${encodeURIComponent(after)}&until=${encodeURIComponent(until)}`);
+
+// كل التنفيذات بين تاريخين، صفحة بعد صفحة (100 لكل صفحة) حتى maxPages
+async function getFillsBetween(after, until, maxPages = 20) {
+  const all = [];
+  for (let token = '', page = 0; page < maxPages; page++) {
+    const batch = await api('GET', `/v2/account/activities/FILL?direction=asc&page_size=100&after=${encodeURIComponent(after)}&until=${encodeURIComponent(until)}` + (token ? `&page_token=${encodeURIComponent(token)}` : ''));
+    if (!batch || !batch.length) break;
+    all.push(...batch);
+    token = batch[batch.length - 1].id;
+    if (batch.length < 100) break;
+  }
+  return all;
+}
+
 const closePosition = symbol => api('DELETE', `/v2/positions/${encodeURIComponent(symbol)}`);
 const closeAllPositions = () => api('DELETE', `/v2/positions?cancel_orders=true`);
 const cancelAllOrders = () => api('DELETE', '/v2/orders');
 const hasKeys = () => !!(KEY && SECRET);
 
 module.exports = {
-  getAccount, getPositions, getClock, marketOpensToday, getTodayFilledBuyOrders, getTodayBuyOrders, nyDay, getOpenBuyOrders, getOpenOrders, getFills, getRecentBuyOrders, cancelOrder,
+  getAccount, getPositions, getClock, marketOpensToday, getTodayFilledBuyOrders, getTodayBuyOrders, nyDay, getOpenBuyOrders, getOpenOrders, getFills, getRecentBuyOrders, getSymbolOrders, getFillsBetween, cancelOrder,
   submitBracketOrder, closePosition, closeAllPositions, cancelAllOrders, hasKeys, PAPER
 };
