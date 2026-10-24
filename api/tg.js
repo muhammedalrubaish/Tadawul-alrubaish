@@ -16,6 +16,7 @@ const HELP = `👋 أهلاً! أنا <b>وكيل رصد</b> — أراقب ال
 • <b>رأي الوكيل</b> — معاينة ما سيشتريه الذكاء الاصطناعي الآن (بلا تنفيذ)
 • <b>تداول الآن</b> — تشغيل دورة التداول الآلي فوراً (تنفيذ فعلي إن كان مفعّلاً)
 • <b>فحص التكرار</b> — هل الصفقات المكررة في السجل شراء مكرر أم بيع على دفعات (للقراءة فقط)
+• <b>فحص الوقف</b> + رمز — مثل <code>فحص الوقف RTX</code>: أوامر الوقف والهدف كما يعيدها الوسيط (للقراءة فقط)
 • <b>أوقف الكل</b> — إغلاق طارئ فوري لكل صفقات التداول الآلي المفتوحة
 
 وأرسل لك تلقائياً ملخص الفرص قبل افتتاح كل سوق يومياً 📬`;
@@ -122,6 +123,17 @@ module.exports = async (req, res) => {
       const days = dupM[2] ? dupM[2].split(/[,\s]+/).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d)) : undefined;
       try {
         const out = await require('./_dupcheck').checkDuplicates(dupM[1] || 'SMCI', days && days.length ? days : undefined);
+        await send(chatId, out.length > 4000 ? out.slice(0, 4000) + '\n…' : out);
+      } catch (e) { await send(chatId, '⚠️ تعذّر الفحص: ' + esc(e.message)); }
+      return done();
+    }
+
+    // «فحص الوقف SYM» — للقراءة فقط: ما تعيده Alpaca لأوامر الرمز بكل طريقة، وما تعيده getOpenOrders بالضبط
+    const stopM = text.match(/^\/?(?:فحص الوقف|stopcheck)\s+([A-Za-z.\-]{1,7})$/i);
+    if (stopM) {
+      if (!broker.hasKeys()) { await send(chatId, 'التداول الآلي غير مضبوط — أضف <b>ALPACA_KEY</b> و<b>ALPACA_SECRET</b> في إعدادات Vercel.'); return done(); }
+      try {
+        const out = await require('./_stopcheck').stopCheck(stopM[1]);
         await send(chatId, out.length > 4000 ? out.slice(0, 4000) + '\n…' : out);
       } catch (e) { await send(chatId, '⚠️ تعذّر الفحص: ' + esc(e.message)); }
       return done();

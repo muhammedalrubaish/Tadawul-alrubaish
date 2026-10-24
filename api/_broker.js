@@ -72,19 +72,32 @@ async function submitBracketOrder({ symbol, qty, tp, sl, limit, clientOrderId })
 // حالات منتهية: رجل بهذه الحالة لم تعد تحمي المركز
 const DEAD = new Set(['filled', 'canceled', 'expired', 'rejected', 'replaced', 'done_for_day', 'stopped', 'suspended']);
 
-// كل الأوامر المعلّقة (أرجل الوقف/الهدف للمراكز المفتوحة + أوامر شراء لم تُنفَّذ) في قائمة مسطّحة
-// nested=true إلزامي: رجل الوقف في bracket تبقى «held» حتى يُلمس سعرها، وstatus=open بلا nested لا يعيدها؛
-// مع nested=true تأتي متداخلة تحت رجل الهدف (new)، فنسطّح الأرجل الحيّة ونزيل التكرار
-async function getOpenOrders() {
-  const top = (await api('GET', '/v2/orders?status=open&limit=500&nested=true')) || [];
-  const byId = new Map();
-  const walk = (o, isLeg) => {
-    if (isLeg && DEAD.has(o.status)) return;
-    byId.set(o.id, o);
-    (o.legs || []).forEach(l => walk(l, true));
+// قراءة خام لقائمة الأوامر (GET فقط) — للتشخيص من تيليجرام («فحص الوقف»)
+const listOrders = qs => api('GET', '/v2/orders?' + qs);
+
+// تسطيح أوامر nested=true: كل عقدة حيّة (غير منتهية) تُضاف، والأرجل تُفحص حتى لو كان الأب منتهياً (منفَّذاً)
+// الرجل ترث رمز الأب إن غاب عنها
+function flattenLive(list, byId = new Map()) {
+  const walk = (o, parent) => {
+    const node = parent && !o.symbol ? { ...o, symbol: parent.symbol } : o;
+    if (!DEAD.has(node.status)) byId.set(node.id, node);
+    (node.legs || []).forEach(l => walk(l, node));
   };
-  top.forEach(o => walk(o, false));
-  return [...byId.values()];
+  (list || []).forEach(o => walk(o, null));
+  return byId;
+}
+
+// كل الأوامر الحيّة (أرجل الوقف/الهدف للمراكز المفتوحة + أوامر شراء لم تُنفَّذ) في قائمة مسطّحة، من مصدرين:
+// 1) status=open بلا nested: الأوامر المفتوحة كما هي (رجل الهدف new، أوامر الشراء المعلّقة)
+// 2) status=all بـ nested=true لآخر 90 يوماً: في bracket تتداخل رجلا الوقف والهدف تحت أمر الشراء الأب،
+//    والأب منفَّذ (filled) فيستبعده status=open كلياً ومعه رجل الوقف «held» — لذا نقرأ كل الحالات ونأخذ الأرجل الحيّة
+async function getOpenOrders() {
+  const after = new Date(Date.now() - 90 * 864e5).toISOString();
+  const [flat, nested] = await Promise.all([
+    listOrders('status=open&limit=500&nested=false'),
+    listOrders(`status=all&limit=500&nested=true&direction=desc&after=${encodeURIComponent(after)}`)
+  ]);
+  return [...flattenLive(nested, flattenLive(flat)).values()];
 }
 
 // فحص حماية المراكز المفتوحة:
@@ -164,6 +177,6 @@ const cancelAllOrders = () => api('DELETE', '/v2/orders');
 const hasKeys = () => !!(KEY && SECRET);
 
 module.exports = {
-  getAccount, getPositions, getClock, marketOpensToday, getTodayFilledBuyOrders, getTodayBuyOrders, nyDay, getOpenBuyOrders, getOpenOrders, getUnprotectedPositions, getStopIssues, getFills, getOrdersNested, getRecentBuyOrders, getSymbolOrders, getFillsBetween, cancelOrder,
+  getAccount, getPositions, getClock, marketOpensToday, getTodayFilledBuyOrders, getTodayBuyOrders, nyDay, getOpenBuyOrders, getOpenOrders, listOrders, flattenLive, getUnprotectedPositions, getStopIssues, getFills, getOrdersNested, getRecentBuyOrders, getSymbolOrders, getFillsBetween, cancelOrder,
   submitBracketOrder, closePosition, closeAllPositions, cancelAllOrders, hasKeys, PAPER
 };
