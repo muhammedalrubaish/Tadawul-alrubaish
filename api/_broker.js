@@ -72,8 +72,36 @@ async function submitBracketOrder({ symbol, qty, tp, sl, limit, clientOrderId })
 // كل الأوامر المعلّقة (أرجل الوقف/الهدف للمراكز المفتوحة + أوامر شراء لم تُنفَّذ)
 const getOpenOrders = () => api('GET', '/v2/orders?status=open&limit=200&nested=false');
 // سجل التنفيذات (شراء وبيع) من نشاط الحساب — لبناء الصفقات المغلقة وربحها المحقق
-// الحد الأقصى لدى Alpaca 100 سجل في الصفحة
-const getFills = (n = 100) => api('GET', `/v2/account/activities/FILL?direction=desc&page_size=${Math.min(100, Math.max(1, n))}`);
+// الحد الأقصى لدى Alpaca 100 سجل في الصفحة: نتصفّح بـ page_token حتى maxPages (500 تنفيذ افتراضياً)
+// complete=false إن بقي في السجل ما هو أقدم من آخر صفحة جُلبت
+async function getFills(maxPages = 5) {
+  const fills = [];
+  let token = '';
+  for (let page = 0; page < maxPages; page++) {
+    const batch = await api('GET', `/v2/account/activities/FILL?direction=desc&page_size=100` + (token ? `&page_token=${encodeURIComponent(token)}` : ''));
+    if (!batch || !batch.length) return { fills, complete: true };
+    fills.push(...batch);
+    token = batch[batch.length - 1].id;
+    if (batch.length < 100) return { fills, complete: true };
+  }
+  const more = await api('GET', `/v2/account/activities/FILL?direction=desc&page_size=1&page_token=${encodeURIComponent(token)}`);
+  return { fills, complete: !(more && more.length) };
+}
+
+// كل الأوامر بكل حالاتها مع أرجل bracket (nested=true) منذ تاريخ — لقراءة الوقف والهدف المخططين ونوع الخروج
+// Alpaca يعيد 500 أمر كحد أقصى في الطلب، فنتقدّم بالمؤشر after = وقت آخر أمر في الدفعة
+async function getOrdersNested(after, maxPages = 5) {
+  const orders = [];
+  let cursor = after;
+  for (let page = 0; page < maxPages; page++) {
+    const batch = await api('GET', `/v2/orders?status=all&nested=true&direction=asc&limit=500&after=${encodeURIComponent(cursor)}`);
+    if (!batch || !batch.length) break;
+    orders.push(...batch);
+    if (batch.length < 500) break;
+    cursor = batch[batch.length - 1].submitted_at;
+  }
+  return orders;
+}
 
 // كل أوامر الشراء في آخر N يوماً بكل حالاتها (نُفِّذ · أُلغي · انتهى · مرفوض · معلّق)
 // يكشف الأوامر التي أرسلها الوكيل ولم تُنفَّذ — لا تظهر في سجل التنفيذات
@@ -106,6 +134,6 @@ const cancelAllOrders = () => api('DELETE', '/v2/orders');
 const hasKeys = () => !!(KEY && SECRET);
 
 module.exports = {
-  getAccount, getPositions, getClock, marketOpensToday, getTodayFilledBuyOrders, getTodayBuyOrders, nyDay, getOpenBuyOrders, getOpenOrders, getFills, getRecentBuyOrders, getSymbolOrders, getFillsBetween, cancelOrder,
+  getAccount, getPositions, getClock, marketOpensToday, getTodayFilledBuyOrders, getTodayBuyOrders, nyDay, getOpenBuyOrders, getOpenOrders, getFills, getOrdersNested, getRecentBuyOrders, getSymbolOrders, getFillsBetween, cancelOrder,
   submitBracketOrder, closePosition, closeAllPositions, cancelAllOrders, hasKeys, PAPER
 };

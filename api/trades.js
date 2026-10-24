@@ -6,34 +6,88 @@ const ai = require('./_ai');
 const NAMES = require('./_names');
 const { snapshot } = require('./_market');
 const tg = require('./_telegram');
+const decisions = require('./_decisions');
 
 const PASS = String(process.env.AI_PASS || '').trim();
 const n2 = v => +(+v || 0).toFixed(2);
 const nameOf = sym => NAMES[sym] || sym;
 
-// بناء الصفقات المغلقة من سجل التنفيذات: لكل بيع يُطابَق أقدم شراء لم يُغلق بعد (FIFO) في الرمز نفسه
-function closedTrades(fills) {
-  const asc = [...fills].filter(f => f && f.symbol && +f.qty > 0 && +f.price > 0)
-    .sort((a, b) => Date.parse(a.transaction_time) - Date.parse(b.transaction_time));
-  const lots = {}; // sym → [{qty, price, at}]
+// تجميع التنفيذات حسب الأمر: كل تنفيذات أمر واحد (شراء أو رجل بيع) = تنفيذ واحد بمتوسط سعر مرجّح بالكمية
+// الحساب التجريبي يقسّم الأمر الواحد على دفعات عشوائياً، فبلا تجميع يظهر البيع الواحد صفوفاً مكررة
+function groupFills(fills) {
+  const by = new Map();
+  for (const f of fills || []) {
+    if (!f || !f.symbol || !(+f.qty > 0) || !(+f.price > 0)) continue;
+    const key = f.order_id || f.id;
+    const g = by.get(key);
+    if (!g) by.set(key, { orderId: f.order_id || null, symbol: f.symbol, side: f.side, qty: +f.qty, value: +f.qty * +f.price, at: f.transaction_time });
+    else { g.qty += +f.qty; g.value += +f.qty * +f.price; if (Date.parse(f.transaction_time) < Date.parse(g.at)) g.at = f.transaction_time; }
+  }
+  return [...by.values()].map(g => ({ ...g, price: g.value / g.qty }));
+}
+
+// دقائق منذ منتصف الليل بتوقيت نيويورك — الجلسة 9:30 (570)، فأول 30 دقيقة = 570–599
+const nyMinutes = t => {
+  const p = new Intl.DateTimeFormat('en-GB', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(t));
+  return +p.find(x => x.type === 'hour').value * 60 + +p.find(x => x.type === 'minute').value;
+};
+
+// بناء الصفقات المغلقة: لكل خروج (رجل بيع مجمّعة) يُطابَق أقدم دخول لم يُغلق بعد (FIFO) في الرمز نفسه
+// orders (اختياري): أوامر الشراء بأرجلها (nested=true) لقراءة الوقف والهدف المخططين ونوع الخروج
+// decisions (اختياري): سجل القرارات من Blob بمفتاح client_order_id لربط ثقة الوكيل
+function closedTrades(fills, orders = null, decisions = {}) {
+  const asc = groupFills(fills).sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
+  const parents = new Map(), legs = new Map();
+  for (const o of orders || []) {
+    parents.set(o.id, o);
+    for (const l of o.legs || []) legs.set(l.id, { ...l, parentId: o.id });
+  }
+  const lots = {}; // sym → [{qty, price, at, orderId}]
   const closed = [];
-  for (const f of asc) {
-    const sym = f.symbol, qty = +f.qty, price = +f.price, at = f.transaction_time;
-    if (f.side === 'buy') { (lots[sym] = lots[sym] || []).push({ qty, price, at }); continue; }
-    let left = qty, cost = 0, matched = 0, entryAt = null;
-    while (left > 0 && lots[sym] && lots[sym].length) {
+  for (const x of asc) {
+    const sym = x.symbol;
+    if (x.side === 'buy') { (lots[sym] = lots[sym] || []).push({ qty: x.qty, price: x.price, at: x.at, orderId: x.orderId }); continue; }
+    let left = x.qty, cost = 0, matched = 0, entryAt = null, buyId = null;
+    while (left > 1e-9 && lots[sym] && lots[sym].length) {
       const lot = lots[sym][0];
       const take = Math.min(lot.qty, left);
       cost += take * lot.price; matched += take; left -= take; lot.qty -= take;
-      entryAt = entryAt || lot.at;
-      if (lot.qty <= 0) lots[sym].shift();
+      entryAt = entryAt || lot.at; buyId = buyId || lot.orderId;
+      if (lot.qty <= 1e-9) lots[sym].shift();
     }
-    if (matched > 0) {
-      const entry = cost / matched;
-      closed.push({ sym, name: nameOf(sym), qty: matched, entry: n2(entry), exit: n2(price), pl: n2((price - entry) * matched), plPct: n2((price / entry - 1) * 100), entryAt, exitAt: at });
+    if (!(matched > 0)) continue;
+    const entry = cost / matched, price = x.price;
+    const t = { sym, name: nameOf(sym), qty: +matched.toFixed(6), entry: n2(entry), exit: n2(price), pl: n2((price - entry) * matched), plPct: n2((price / entry - 1) * 100), entryAt, exitAt: x.at };
+    // القياس: مدة الاحتفاظ والخروج عند الافتتاح لا يحتاجان أوامر
+    t.holdDays = entryAt ? +((Date.parse(x.at) - Date.parse(entryAt)) / 864e5).toFixed(1) : null;
+    const m = nyMinutes(x.at);
+    t.openExit = m >= 570 && m < 600;
+    if (orders) {
+      const buy = parents.get(buyId);
+      const bl = (buy && buy.legs) || [];
+      const sl = bl.find(l => /stop/.test(l.type) && l.stop_price), tp = bl.find(l => l.type === 'limit' && l.limit_price);
+      t.plannedSl = sl ? n2(sl.stop_price) : null;
+      t.plannedTp = tp ? n2(tp.limit_price) : null;
+      const leg = legs.get(x.orderId);
+      t.exitType = leg ? (/stop/.test(leg.type) ? 'stop' : leg.type === 'limit' ? 'target' : 'manual') : 'manual';
+      // الانزلاق عند الوقف: سالب = الخروج أسوأ من الوقف المخطط (فجوة أو تنفيذ متأخر)
+      t.slippagePct = t.exitType === 'stop' && t.plannedSl ? n2((price / t.plannedSl - 1) * 100) : null;
+      t.clientOrderId = buy ? buy.client_order_id : null;
+      const dec = t.clientOrderId && decisions[t.clientOrderId];
+      t.confidence = dec && dec.confidence != null ? +dec.confidence : null;
     }
+    closed.push(t);
   }
   return closed.reverse();
+}
+
+// ملخص القياس لمجموعة صفقات: عدد الخروج بالوقف ومتوسط انزلاقه، وعدد الخروج في أول 30 دقيقة من الجلسة
+function measureSummary(closed) {
+  const stops = closed.filter(t => t.exitType === 'stop' && t.slippagePct != null);
+  return {
+    n: closed.length, stopExits: stops.length, avgSlipStop: stops.length ? n2(avg(stops.map(t => t.slippagePct))) : null,
+    openExits: closed.filter(t => t.openExit).length, withPlan: closed.filter(t => t.plannedSl != null).length
+  };
 }
 
 /* ========= تقرير الفعالية: الوكيل مقابل السوق (SPY) بمعايير محددة مسبقاً ========= */
@@ -74,17 +128,27 @@ function spyReturn(spy, entryAt, exitAt) {
 const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
 
 // المعايير محددة قبل بدء التجربة كي لا تُفصَّل على النتيجة بعدها
-// from: بداية التجربة الحالية — أُعيدت بعد نقل موعد الشراء إلى ما بعد افتتاح وول ستريت؛ ما قبلها خارج التقييم
-const CRITERIA = { days: 30, minTrades: 10, minAvgRet: 0.15, minProfitFactor: 1.2, from: '2026-09-30T14:30:00Z' };
-function buildPerf(closed, positions, fills, spy, from = CRITERIA.from) {
-  const t0 = from ? Date.parse(from) : 0;
-  const after = at => at && Date.parse(at) >= t0;
+const CRITERIA = { days: 30, minTrades: 10, minAvgRet: 0.15, minProfitFactor: 1.2 };
+// فترات التجربة: كل تغيير لاحق في منطق الوكيل = فترة جديدة تُضاف هنا (لا يُستبدل تاريخ سابق)
+// «الأساس» بدأ بعد نقل موعد الشراء إلى ما بعد افتتاح وول ستريت؛ ما قبله خارج التقييم
+const PERIODS = [
+  { from: '2026-09-30T14:30:00Z', label: 'الأساس' }
+];
+const CURRENT = PERIODS[PERIODS.length - 1];
+// to: نهاية الفترة (بداية الفترة التالية) — حصراً، كي لا تختلط صفقات فترتين
+function buildPerf(closed, positions, fills, spy, from = CURRENT.from, to = null) {
+  const t0 = from ? Date.parse(from) : 0, t1 = to ? Date.parse(to) : Infinity;
+  const after = at => at && Date.parse(at) >= t0 && Date.parse(at) < t1;
   closed = (closed || []).filter(t => after(t.entryAt));
   positions = (positions || []).filter(p => after(p.entryAt));
   const buys = (fills || []).filter(f => f.side === 'buy' && after(f.transaction_time)).map(f => Date.parse(f.transaction_time)).filter(Number.isFinite);
   const startedAt = buys.length ? new Date(Math.min(...buys)).toISOString() : null;
-  const days = startedAt ? Math.floor((Date.now() - Date.parse(startedAt)) / 864e5) : 0;
-  const rows = closed.map(t => { const sp = spyReturn(spy, t.entryAt, t.exitAt); return { ret: t.plPct, spy: sp, alpha: sp == null ? null : t.plPct - sp, pl: t.pl }; });
+  const days = startedAt ? Math.floor((Math.min(Date.now(), t1) - Date.parse(startedAt)) / 864e5) : 0;
+  const rows = closed.map(t => { const sp = spyReturn(spy, t.entryAt, t.exitAt); return { ret: t.plPct, spy: sp, alpha: sp == null ? null : t.plPct - sp, pl: t.pl, cost: t.entry * t.qty }; });
+  // مقاييس بالدولار (للاطلاع، ليست شروط حكم): متوسط ربح/خسارة الصفقة، والعائد المرجّح بحجم الصفقة = مجموع الربح ÷ مجموع رأس المال
+  const costSum = rows.reduce((a, r) => a + r.cost, 0);
+  const avgPl = avg(rows.map(r => r.pl));
+  const weightedRet = costSum > 0 ? rows.reduce((a, r) => a + r.pl, 0) / costSum * 100 : null;
   const withSpy = rows.filter(r => r.alpha != null);
   const gains = rows.filter(r => r.pl > 0).reduce((a, r) => a + r.pl, 0);
   const losses = Math.abs(rows.filter(r => r.pl < 0).reduce((a, r) => a + r.pl, 0));
@@ -106,7 +170,7 @@ function buildPerf(closed, positions, fills, spy, from = CRITERIA.from) {
   const verdict = !startedAt ? 'not_started' : !ready ? 'running' : checks.every(c => c.ok) ? 'convincing' : 'not_convincing';
   const openAlpha = avg(positions.map(p => { const sp = spyReturn(spy, p.entryAt, null); return sp == null ? null : p.plPct - sp; }).filter(v => v != null));
   return {
-    from: from || null, startedAt, days, target: CRITERIA.days, minTrades: CRITERIA.minTrades, extended, closed: n, winRate: n ? Math.round(rows.filter(r => r.pl > 0).length / n * 100) : null,
+    from: from || null, to: to || null, startedAt, days, avgPl: r2(avgPl), weightedRet: r2(weightedRet), measure: measureSummary(closed), target: CRITERIA.days, minTrades: CRITERIA.minTrades, extended, closed: n, winRate: n ? Math.round(rows.filter(r => r.pl > 0).length / n * 100) : null,
     avgRet: r2(avgRet), avgSpy: r2(avg(withSpy.map(r => r.spy))), avgAlpha: r2(avgAlpha), profitFactor: pf === Infinity ? 'inf' : r2(pf),
     openAlpha: r2(openAlpha), spyOk: !!spy, checks, verdict
   };
@@ -150,11 +214,20 @@ module.exports = async (req, res) => {
   try {
     // سجل التنفيذات ثانوي: فشله لا يُسقط الحساب والمراكز المفتوحة، بل يُعرض كتنبيه
     let fillsError = null;
-    const [acc, positions, open, fills, buyOrders] = await Promise.all([
+    const [acc, positions, open, fillsRes, buyOrders] = await Promise.all([
       broker.getAccount(), broker.getPositions(), broker.getOpenOrders(),
-      broker.getFills(100).catch(e => { fillsError = String((e && e.message) || e); return []; }),
+      broker.getFills(5).catch(e => { fillsError = String((e && e.message) || e); return { fills: [], complete: true }; }),
       broker.getRecentBuyOrders(30).catch(() => null)
     ]);
+    const fills = fillsRes.fills;
+    // أوامر الصفقات بأرجلها (الوقف والهدف المخططان) منذ ما قبل أقدم تنفيذ بثلاثة أيام — فشلها لا يُسقط الصفحة
+    const times = fills.map(f => Date.parse(f.transaction_time)).filter(Number.isFinite);
+    let nested = null;
+    if (times.length) {
+      try { nested = await broker.getOrdersNested(new Date(Math.min(...times) - 3 * 864e5).toISOString()); } catch (_) { nested = null; }
+    }
+    // ثقة الوكيل من سجل القرارات (Blob) بمعرّف أمر الشراء — متاحة للصفقات منذ المرحلة 0 فقط
+    const decs = nested ? await decisions.readDecisions(nested.filter(o => o.side === 'buy').map(o => o.client_order_id)) : {};
     // أرجل الوقف والهدف: أوامر بيع معلّقة على رمز مركز مفتوح
     const legs = {};
     (open || []).forEach(o => {
@@ -179,7 +252,7 @@ module.exports = async (req, res) => {
       limit: o.limit_price ? +o.limit_price : null, filledPrice: o.filled_avg_price ? n2(o.filled_avg_price) : null,
       submittedAt: o.submitted_at, filledAt: o.filled_at || null, endedAt: o.canceled_at || o.expired_at || o.failed_at || null
     }));
-    const closed = closedTrades(fills || []);
+    const closed = closedTrades(fills, nested, decs);
     // تاريخ دخول كل مركز مفتوح = أقدم شراء لم يُغلق بعد (لمقارنته بالسوق من اليوم نفسه)
     const openLots = {};
     [...(fills || [])].filter(f => f && f.symbol).sort((a, b) => Date.parse(a.transaction_time) - Date.parse(b.transaction_time)).forEach(f => {
@@ -188,15 +261,23 @@ module.exports = async (req, res) => {
       else { let left = +f.qty; while (left > 0 && L.length) { const t = Math.min(L[0].qty, left); L[0].qty -= t; left -= t; if (L[0].qty <= 0) L.shift(); } }
     });
     pos.forEach(p => { const L = openLots[p.sym]; p.entryAt = L && L.length ? L[0].at : null; });
-    let perf = null;
-    try { perf = buildPerf(closed, pos, fills, await spyBars()); } catch (_) { perf = null; }
+    // نتيجة كل فترة بجانب التي قبلها؛ perf = الفترة الحالية (آخر فترة) كما كانت
+    let perf = null, periods = null;
+    try {
+      const spy = await spyBars();
+      periods = PERIODS.map((p, i) => ({ label: p.label, from: p.from, to: (PERIODS[i + 1] || {}).from || null, perf: buildPerf(closed, pos, fills, spy, p.from, (PERIODS[i + 1] || {}).from || null) }));
+      perf = periods[periods.length - 1].perf;
+    } catch (_) { perf = null; periods = null; }
+    // ملخص القياس لكل الصفقات منذ بداية أول فترة (بأثر رجعي، لا للصفقات الجديدة فقط)
+    const measure = measureSummary(closed.filter(t => t.entryAt && Date.parse(t.entryAt) >= Date.parse(PERIODS[0].from)));
     const wins = closed.filter(t => t.pl > 0).length;
     const realized = n2(closed.reduce((a, t) => a + t.pl, 0));
     const dailyPL = n2(+acc.equity - +acc.last_equity);
     return res.status(200).json({
       ...base,
       account: { equity: n2(acc.equity), lastEquity: n2(acc.last_equity), dailyPL, cash: n2(acc.cash), buyingPower: n2(acc.buying_power), blocked: !!(acc.trading_blocked || acc.account_blocked) },
-      positions: pos, pending, orders, closed: closed.slice(0, 30), fillsError, perf,
+      positions: pos, pending, orders, closed: closed.slice(0, 60), fillsError, fillsIncomplete: !fillsRes.complete, planError: fills.length && !nested ? 'تعذّر جلب أرجل الأوامر — الوقف المخطط ونوع الخروج غير متاحين الآن' : null,
+      measure, measureFrom: PERIODS[0].from, perf, periods,
       stats: { closed: closed.length, wins, losses: closed.length - wins, realized, unrealized: n2(pos.reduce((a, p) => a + p.pl, 0)) },
       at: new Date().toISOString()
     });
@@ -207,3 +288,6 @@ module.exports = async (req, res) => {
 
 module.exports.buildPerf = buildPerf;
 module.exports.closedTrades = closedTrades;
+module.exports.groupFills = groupFills;
+module.exports.measureSummary = measureSummary;
+module.exports.PERIODS = PERIODS;
