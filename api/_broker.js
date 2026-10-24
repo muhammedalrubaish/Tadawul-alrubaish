@@ -37,19 +37,33 @@ async function getTodayFilledBuyOrders() {
   return (orders || []).filter(o => o.side === 'buy' && o.filled_at);
 }
 
+// يوم التداول بتوقيت نيويورك (YYYY-MM-DD) — أساس المعرّف الثابت وفحص «أمر اليوم»
+const nyDay = t => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(t));
+
+// كل أوامر الشراء المُرسلة اليوم (بتوقيت نيويورك) بكل حالاتها: منفَّذ · ملغى · مرفوض · معلّق
+// يمنع إعادة شراء رمز في اليوم نفسه حتى لو خرج بوقف أو أُلغي أمره
+async function getTodayBuyOrders() {
+  const after = new Date(Date.now() - 36 * 3600e3).toISOString();
+  const today = nyDay(Date.now());
+  const orders = await api('GET', `/v2/orders?status=all&direction=desc&limit=500&nested=false&after=${encodeURIComponent(after)}`);
+  return (orders || []).filter(o => o.side === 'buy' && nyDay(o.submitted_at) === today);
+}
+
 // أوامر الشراء المعلّقة (لم تُنفَّذ بعد): تُحسب ضمن الانكشاف وتُلغى إن قدُمت
 const getOpenBuyOrders = async () => (await api('GET', '/v2/orders?status=open&limit=200&nested=false') || []).filter(o => o.side === 'buy');
 const cancelOrder = id => api('DELETE', `/v2/orders/${encodeURIComponent(id)}`);
 
 // أمر تعليقي (bracket): دخول بحد سعري (أو بسعر السوق) + وقف خسارة وهدف ربح يُنفَّذهما الوسيط تلقائياً
 // gtc إلزامي: مع «day» تنتهي أرجل الوقف والهدف عند الإغلاق ويبقى المركز مكشوفاً في اليوم التالي
-async function submitBracketOrder({ symbol, qty, tp, sl, limit }) {
+// clientOrderId ثابت لليوم والرمز: Alpaca يرفض تكرار المعرّف، فدورتان متزامنتان لا تشتريان مرتين
+async function submitBracketOrder({ symbol, qty, tp, sl, limit, clientOrderId }) {
   const body = {
     symbol, qty, side: 'buy', time_in_force: 'gtc',
     order_class: 'bracket',
     take_profit: { limit_price: +(+tp).toFixed(2) },
     stop_loss: { stop_price: +(+sl).toFixed(2) }
   };
+  if (clientOrderId) body.client_order_id = clientOrderId;
   if (limit > 0) { body.type = 'limit'; body.limit_price = +(+limit).toFixed(2); }
   else body.type = 'market';
   return api('POST', '/v2/orders', body);
@@ -75,6 +89,6 @@ const cancelAllOrders = () => api('DELETE', '/v2/orders');
 const hasKeys = () => !!(KEY && SECRET);
 
 module.exports = {
-  getAccount, getPositions, getClock, marketOpensToday, getTodayFilledBuyOrders, getOpenBuyOrders, getOpenOrders, getFills, getRecentBuyOrders, cancelOrder,
+  getAccount, getPositions, getClock, marketOpensToday, getTodayFilledBuyOrders, getTodayBuyOrders, nyDay, getOpenBuyOrders, getOpenOrders, getFills, getRecentBuyOrders, cancelOrder,
   submitBracketOrder, closePosition, closeAllPositions, cancelAllOrders, hasKeys, PAPER
 };

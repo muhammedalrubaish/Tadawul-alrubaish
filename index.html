@@ -3730,6 +3730,7 @@ function agentCycleHtml(r,dry){
   if(r.executed&&r.executed.length)h+=r.executed.map(e=>`<p>🟢 ${dry?'كان سيشتري':'أمر شراء'} <b>${esc(e.name)}</b> <span class="mono">${esc(e.sym)}</span> — ${e.qty} سهم بحد ${fmt(e.limit)}$ · <span style="color:var(--down)">وقف ${fmt(e.sl)}</span> · <span style="color:var(--up)">هدف ${fmt(e.tp)}</span> · ثقة ${e.confidence}${e.reason?`<br><small>↳ ${esc(e.reason)}</small>`:''}</p>`).join('');
   else h+=`<p>⚪ لا صفقة شراء اليوم — لم تستوفِ أي فرصة الشروط.</p>`;
   if(r.closed&&r.closed.length)h+=r.closed.map(x=>`<p>🔻 ${dry?'كان سيغلق':'إغلاق'} <span class="mono">${esc(x.sym)}</span> — ${esc(x.reason||'')}</p>`).join('');
+  if(r.dupes&&r.dupes.length)h+=r.dupes.map(x=>`<p>⏭️ ${dry?'كان سيتخطّى':'تخطّي'} <span class="mono">${esc(x.sym)}</span> — ${esc(x.reason)}</p>`).join('');
   if(r.considered&&r.considered.length)h+=`<details><summary>مرشّحون استُبعدوا (${r.considered.length})</summary>${r.considered.map(c=>`<p><span class="mono">${esc(c.sym)}</span> · ثقة ${c.confidence} — ${esc(String(c.reason||'').slice(0,160))}</p>`).join('')}</details>`;
   if(r.failed&&r.failed.length)h+=r.failed.map(f=>`<p style="color:var(--down)">⚠️ ${esc(f.sym)}: ${esc(f.error)}</p>`).join('');
   return h+'</div>';
