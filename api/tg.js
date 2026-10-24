@@ -111,6 +111,7 @@ module.exports = async (req, res) => {
         const r = await autotrade.runCycle(list, { dry: dryM });
         await send(chatId, autotrade.fmtCycle(r));
       } catch (e) { await send(chatId, '⚠️ تعذّرت الدورة (لم يُنفَّذ أي أمر): ' + esc(e.message)); }
+      try { const alert = await autotrade.stopAlert(); if (alert) await send(chatId, alert); } catch (_) {}
       return done();
     }
 

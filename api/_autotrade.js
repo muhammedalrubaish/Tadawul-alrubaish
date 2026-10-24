@@ -184,4 +184,21 @@ function fmtCycle(r) {
   return lines.join('\n');
 }
 
-module.exports = { runCycle, fmtCycle, cfg, orderIdFor };
+// فحص كل دورة — تنبيه فقط، بلا أي أمر تلقائي:
+// • مركز مفتوح بلا رجل وقف حيّة لدى الوسيط = مكشوف لفجوة نازلة
+// • السعر الحالي تحت الوقف والرجل ما زالت held = الوقف لم يُنفَّذ
+// يعيد نص رسالة تيليجرام أو null إن لم توجد مشكلة
+async function stopAlert() {
+  if (!broker.hasKeys()) return null;
+  const { bare, stuck } = await broker.getStopIssues();
+  if (!bare.length && !stuck.length) return null;
+  const acct = broker.PAPER ? '(حساب تجريبي 🧪)' : '(حساب حقيقي 💰)';
+  const row = p => `• <code>${esc(p.symbol)}</code> — ${+p.qty} سهم · دخول ${(+p.avg_entry_price).toFixed(2)} · حالي ${(+p.current_price).toFixed(2)}`;
+  const parts = [];
+  if (bare.length) parts.push(`🚨 <b>${bare.length === 1 ? 'مركز مفتوح' : bare.length + ' مراكز مفتوحة'} بلا وقف لدى الوسيط</b> ${acct}\n` + bare.map(row).join('\n'));
+  if (stuck.length) parts.push(`🚨 <b>السعر تحت الوقف والوقف لم يُنفَّذ</b> ${acct}\n` +
+    stuck.map(p => `${row(p)} · الوقف ${p.stop_price.toFixed(2)} ما زال held`).join('\n'));
+  return parts.join('\n\n') + `\nلم يُرسل أي أمر تلقائياً. راجع الأوامر في Alpaca، أو أرسل «أوقف الكل» للإغلاق الطارئ.`;
+}
+
+module.exports = { runCycle, fmtCycle, cfg, orderIdFor, stopAlert };

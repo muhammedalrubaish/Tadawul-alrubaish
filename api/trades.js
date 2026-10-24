@@ -204,7 +204,10 @@ module.exports = async (req, res) => {
       const list = await snapshot('us');
       const r = await autotrade.runCycle(list, { dry: action === 'preview' });
       // الدورة الفعلية تُبلَّغ في تيليجرام أيضاً ليبقى سجلها في مكان واحد
-      if (action === 'run' && tg.TOKEN && tg.CHAT) { try { await tg.send(tg.CHAT, autotrade.fmtCycle(r)); } catch (_) {} }
+      if (action === 'run' && tg.TOKEN && tg.CHAT) {
+        try { await tg.send(tg.CHAT, autotrade.fmtCycle(r)); } catch (_) {}
+        try { const alert = await autotrade.stopAlert(); if (alert) await tg.send(tg.CHAT, alert); } catch (_) {}
+      }
       return res.status(200).json({ ok: true, action, result: r });
     } catch (e) {
       return res.status(502).json({ error: 'لم يُنفَّذ أي أمر: ' + String((e && e.message) || e) });

@@ -69,8 +69,38 @@ async function submitBracketOrder({ symbol, qty, tp, sl, limit, clientOrderId })
   return api('POST', '/v2/orders', body);
 }
 
-// كل الأوامر المعلّقة (أرجل الوقف/الهدف للمراكز المفتوحة + أوامر شراء لم تُنفَّذ)
-const getOpenOrders = () => api('GET', '/v2/orders?status=open&limit=200&nested=false');
+// حالات منتهية: رجل بهذه الحالة لم تعد تحمي المركز
+const DEAD = new Set(['filled', 'canceled', 'expired', 'rejected', 'replaced', 'done_for_day', 'stopped', 'suspended']);
+
+// كل الأوامر المعلّقة (أرجل الوقف/الهدف للمراكز المفتوحة + أوامر شراء لم تُنفَّذ) في قائمة مسطّحة
+// nested=true إلزامي: رجل الوقف في bracket تبقى «held» حتى يُلمس سعرها، وstatus=open بلا nested لا يعيدها؛
+// مع nested=true تأتي متداخلة تحت رجل الهدف (new)، فنسطّح الأرجل الحيّة ونزيل التكرار
+async function getOpenOrders() {
+  const top = (await api('GET', '/v2/orders?status=open&limit=500&nested=true')) || [];
+  const byId = new Map();
+  const walk = (o, isLeg) => {
+    if (isLeg && DEAD.has(o.status)) return;
+    byId.set(o.id, o);
+    (o.legs || []).forEach(l => walk(l, true));
+  };
+  top.forEach(o => walk(o, false));
+  return [...byId.values()];
+}
+
+// فحص حماية المراكز المفتوحة:
+// bare: بلا رجل وقف حيّة لدى الوسيط (held أو new أو غيرها من الحالات غير المنتهية)
+// stuck: السعر الحالي تحت الوقف والرجل ما زالت held — الوقف لم يتحوّل لأمر بيع (حالة معروفة في الحساب التجريبي)
+async function getStopIssues() {
+  const [positions, open] = await Promise.all([getPositions(), getOpenOrders()]);
+  const stops = new Map();
+  open.filter(o => o.side === 'sell' && /stop/.test(o.type) && o.stop_price).forEach(o => stops.set(o.symbol, o));
+  const long = (positions || []).filter(p => +p.qty > 0);
+  const bare = long.filter(p => !stops.has(p.symbol));
+  const stuck = long.filter(p => { const s = stops.get(p.symbol); return s && s.status === 'held' && +p.current_price > 0 && +p.current_price < +s.stop_price; })
+    .map(p => ({ ...p, stop_price: +stops.get(p.symbol).stop_price }));
+  return { bare, stuck };
+}
+const getUnprotectedPositions = async () => (await getStopIssues()).bare;
 // سجل التنفيذات (شراء وبيع) من نشاط الحساب — لبناء الصفقات المغلقة وربحها المحقق
 // الحد الأقصى لدى Alpaca 100 سجل في الصفحة: نتصفّح بـ page_token حتى maxPages (500 تنفيذ افتراضياً)
 // complete=false إن بقي في السجل ما هو أقدم من آخر صفحة جُلبت
@@ -134,6 +164,6 @@ const cancelAllOrders = () => api('DELETE', '/v2/orders');
 const hasKeys = () => !!(KEY && SECRET);
 
 module.exports = {
-  getAccount, getPositions, getClock, marketOpensToday, getTodayFilledBuyOrders, getTodayBuyOrders, nyDay, getOpenBuyOrders, getOpenOrders, getFills, getOrdersNested, getRecentBuyOrders, getSymbolOrders, getFillsBetween, cancelOrder,
+  getAccount, getPositions, getClock, marketOpensToday, getTodayFilledBuyOrders, getTodayBuyOrders, nyDay, getOpenBuyOrders, getOpenOrders, getUnprotectedPositions, getStopIssues, getFills, getOrdersNested, getRecentBuyOrders, getSymbolOrders, getFillsBetween, cancelOrder,
   submitBracketOrder, closePosition, closeAllPositions, cancelAllOrders, hasKeys, PAPER
 };
