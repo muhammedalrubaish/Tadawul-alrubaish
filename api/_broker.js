@@ -87,12 +87,20 @@ async function getOpenOrders() {
   return [...byId.values()];
 }
 
-// المراكز المفتوحة بلا رجل وقف حيّة لدى الوسيط (held أو new أو غيرها من الحالات غير المنتهية)
-async function getUnprotectedPositions() {
+// فحص حماية المراكز المفتوحة:
+// bare: بلا رجل وقف حيّة لدى الوسيط (held أو new أو غيرها من الحالات غير المنتهية)
+// stuck: السعر الحالي تحت الوقف والرجل ما زالت held — الوقف لم يتحوّل لأمر بيع (حالة معروفة في الحساب التجريبي)
+async function getStopIssues() {
   const [positions, open] = await Promise.all([getPositions(), getOpenOrders()]);
-  const stops = new Set(open.filter(o => o.side === 'sell' && /stop/.test(o.type) && o.stop_price).map(o => o.symbol));
-  return (positions || []).filter(p => +p.qty > 0 && !stops.has(p.symbol));
+  const stops = new Map();
+  open.filter(o => o.side === 'sell' && /stop/.test(o.type) && o.stop_price).forEach(o => stops.set(o.symbol, o));
+  const long = (positions || []).filter(p => +p.qty > 0);
+  const bare = long.filter(p => !stops.has(p.symbol));
+  const stuck = long.filter(p => { const s = stops.get(p.symbol); return s && s.status === 'held' && +p.current_price > 0 && +p.current_price < +s.stop_price; })
+    .map(p => ({ ...p, stop_price: +stops.get(p.symbol).stop_price }));
+  return { bare, stuck };
 }
+const getUnprotectedPositions = async () => (await getStopIssues()).bare;
 // سجل التنفيذات (شراء وبيع) من نشاط الحساب — لبناء الصفقات المغلقة وربحها المحقق
 // الحد الأقصى لدى Alpaca 100 سجل في الصفحة: نتصفّح بـ page_token حتى maxPages (500 تنفيذ افتراضياً)
 // complete=false إن بقي في السجل ما هو أقدم من آخر صفحة جُلبت
@@ -156,6 +164,6 @@ const cancelAllOrders = () => api('DELETE', '/v2/orders');
 const hasKeys = () => !!(KEY && SECRET);
 
 module.exports = {
-  getAccount, getPositions, getClock, marketOpensToday, getTodayFilledBuyOrders, getTodayBuyOrders, nyDay, getOpenBuyOrders, getOpenOrders, getUnprotectedPositions, getFills, getOrdersNested, getRecentBuyOrders, getSymbolOrders, getFillsBetween, cancelOrder,
+  getAccount, getPositions, getClock, marketOpensToday, getTodayFilledBuyOrders, getTodayBuyOrders, nyDay, getOpenBuyOrders, getOpenOrders, getUnprotectedPositions, getStopIssues, getFills, getOrdersNested, getRecentBuyOrders, getSymbolOrders, getFillsBetween, cancelOrder,
   submitBracketOrder, closePosition, closeAllPositions, cancelAllOrders, hasKeys, PAPER
 };
